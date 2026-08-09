@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium Light Mode - Editorial Dopamine */
+    --background: 0 0% 98%; /* Ultra clean off-white */
+    --foreground: 220 20% 10%; /* Slate black */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+    --primary: 230 85% 60%; /* Vibrant Royal Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 80% 40%; /* Crisp Emerald */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 340 85% 55%; /* Vibrant Rose */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 230 85% 60%;
+    --radius: 0.75rem; /* Smooth rounded corners */
+    --chart-1: 230 85% 60%;
+    --chart-2: 160 80% 40%;
+    --chart-3: 340 85% 55%;
+    --chart-4: 43 100% 50%;
+    --chart-5: 190 100% 45%;
+    --surface-warm: 40 20% 97%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
