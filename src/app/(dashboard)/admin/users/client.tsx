@@ -5,6 +5,7 @@ import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 import {
   Dialog,
@@ -159,30 +160,29 @@ export function UsersTable({ users, campuses = [] }: { users: any[], campuses?: 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <select 
-                  id="role" 
-                  value={formData.role} 
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="STUDENT">Student</option>
-                  <option value="TEACHER">Teacher</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
+                <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val})}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STUDENT">Student</SelectItem>
+                    <SelectItem value="TEACHER">Teacher</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="campus">Campus</Label>
-                <select 
-                  id="campus" 
-                  value={formData.campusId} 
-                  onChange={(e) => setFormData({...formData, campusId: e.target.value})}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Select Campus...</option>
-                  {campuses.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <Select value={formData.campusId} onValueChange={(val) => setFormData({...formData, campusId: val})}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Campus..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campuses.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={isLoading}>{isLoading ? "Saving..." : "Create User"}</Button>
@@ -210,30 +210,29 @@ export function UsersTable({ users, campuses = [] }: { users: any[], campuses?: 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-role">Role</Label>
-                <select 
-                  id="edit-role" 
-                  value={formData.role} 
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="STUDENT">Student</option>
-                  <option value="TEACHER">Teacher</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
+                <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val})}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STUDENT">Student</SelectItem>
+                    <SelectItem value="TEACHER">Teacher</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-campus">Campus</Label>
-                <select 
-                  id="edit-campus" 
-                  value={formData.campusId} 
-                  onChange={(e) => setFormData({...formData, campusId: e.target.value})}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Select Campus...</option>
-                  {campuses.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <Select value={formData.campusId} onValueChange={(val) => setFormData({...formData, campusId: val})}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Campus..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campuses.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={isLoading}>{isLoading ? "Saving..." : "Update User"}</Button>

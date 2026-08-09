@@ -27,14 +27,15 @@ export default function LandingPage() {
         <div className="flex flex-col lg:flex-row border-b border-border/40 bg-white">
           
           {/* LEFT: Photography & Text (65%) */}
-          <div className="lg:w-[65%] relative flex flex-col justify-end border-b lg:border-b-0 lg:border-r border-border/40 bg-muted/20 min-h-[50vh] overflow-hidden">
-            {/* Real photography background, light and clean */}
+          <div className="lg:w-[65%] relative flex flex-col justify-end border-b lg:border-b-0 lg:border-r border-border/40 bg-slate-50 min-h-[50vh] overflow-hidden">
+            {/* Real photography background - Vibrant */}
             <div 
-              className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-luminosity"
+              className="absolute inset-0 bg-cover bg-center opacity-80"
               style={{ backgroundImage: "url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop')" }}
             />
-            {/* Light gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent" />
+            {/* Elegant gradient overlays for text readability without destroying image color */}
+            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent" />
             
             <div className="relative z-10 p-6 lg:p-16 pt-32">
               <motion.h1 
@@ -85,7 +86,7 @@ export default function LandingPage() {
           
           {/* BENTO 1: Admin */}
           <div className="md:col-span-2 md:row-span-2">
-            <Card className="h-full flex flex-col justify-between group overflow-hidden bg-white border-border/40 shadow-soft hover:shadow-soft-lg transition-shadow p-8 relative">
+            <Card className="h-full flex flex-col justify-between group overflow-hidden bg-white border-border/40 p-8 relative">
               <div className="absolute -top-10 -right-10 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                 <Shield className="w-64 h-64 text-primary" />
               </div>
@@ -101,21 +102,21 @@ export default function LandingPage() {
 
           {/* BENTO 2: Teachers */}
           <div className="md:col-span-2">
-            <Card className="h-full flex items-center justify-between group bg-secondary/10 border-secondary/20 shadow-soft hover:shadow-soft-lg transition-shadow p-8 relative overflow-hidden">
+            <Card className="h-full flex items-center justify-between group bg-emerald-50 border-emerald-100 p-8 relative overflow-hidden">
               <div className="relative z-10">
-                <div className="text-sm font-bold text-secondary-foreground/60 mb-2 uppercase tracking-widest">Module 02</div>
-                <h3 className="font-display font-black text-4xl uppercase text-secondary-foreground">Educators</h3>
-                <p className="text-secondary-foreground/80 text-base mt-2 max-w-xs font-medium">
+                <div className="text-sm font-bold text-emerald-800/60 mb-2 uppercase tracking-widest">Module 02</div>
+                <h3 className="font-display font-black text-4xl uppercase text-emerald-950">Educators</h3>
+                <p className="text-emerald-900/80 text-base mt-2 max-w-xs font-medium">
                   Frictionless grading, attendance, and assignment workflows.
                 </p>
               </div>
-              <GraduationCap className="w-24 h-24 text-secondary opacity-20 relative z-10" />
+              <GraduationCap className="w-24 h-24 text-emerald-600 opacity-20 relative z-10" />
             </Card>
           </div>
 
           {/* BENTO 3: Students */}
           <div>
-            <Card className="h-full flex flex-col justify-between group bg-white border-border/40 shadow-soft hover:shadow-soft-lg transition-shadow p-8">
+            <Card className="h-full flex flex-col justify-between group bg-white border-border/40 p-8">
               <Users className="w-10 h-10 text-primary mb-4" />
               <div className="relative z-10">
                 <h3 className="font-display font-bold text-2xl uppercase text-foreground">Students</h3>
@@ -128,7 +129,7 @@ export default function LandingPage() {
 
           {/* BENTO 4: Customization */}
           <div>
-            <Card className="h-full flex flex-col justify-center items-center text-center group bg-primary/5 border-primary/20 shadow-soft hover:shadow-soft-lg transition-shadow p-8">
+            <Card className="h-full flex flex-col justify-center items-center text-center group bg-primary/5 border-primary/20 p-8">
               <Settings className="w-8 h-8 text-primary mb-3" />
               <div className="font-display font-bold text-xl mb-1 text-foreground uppercase">Fully Bespoke</div>
               <div className="text-sm text-muted-foreground font-medium mt-1">Tailored for you</div>

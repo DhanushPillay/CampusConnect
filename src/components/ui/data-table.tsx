@@ -60,41 +60,46 @@ export function DataTable<T extends { id: string }>({
   }
 
   return (
-    <Card className={cn("overflow-hidden bg-white border-border/40 shadow-soft", className)}>
+    <Card className={cn("overflow-hidden bg-white/60 backdrop-blur-xl border-border/40 shadow-xl shadow-primary/5 rounded-3xl", className)}>
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-border/40 bg-muted/30">
-              {columns.map((col) => (
+            <tr className="border-b border-border/40 bg-muted/20">
+              {columns.map((col, idx) => (
                 <th
                   key={col.key}
                   className={cn(
-                    "px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors",
+                    "px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-primary transition-colors whitespace-nowrap",
+                    idx === 0 ? "pl-8" : "",
                     col.className
                   )}
                   onClick={() => toggleSort(col.key)}
                 >
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-2">
                     {col.header}
                     {sortKey === col.key && (
-                      <span className="text-primary">{sortDir === "asc" ? "↑" : "↓"}</span>
+                      <span className="text-primary bg-primary/10 rounded-full px-1.5 py-0.5 text-[10px]">{sortDir === "asc" ? "↑" : "↓"}</span>
                     )}
                   </span>
                 </th>
               ))}
-              {actions && <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-24">Actions</th>}
+              {actions && <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider w-24 pr-8">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {sorted.map((item) => (
-              <tr key={item.id} className="border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors">
-                {columns.map((col) => (
-                  <td key={col.key} className={cn("px-5 py-3 text-sm text-foreground", col.className)}>
+              <tr key={item.id} className="border-b border-border/20 last:border-0 hover:bg-white/80 transition-colors group">
+                {columns.map((col, idx) => (
+                  <td key={col.key} className={cn("px-6 py-4 text-sm font-medium text-foreground group-hover:text-primary transition-colors", idx === 0 ? "pl-8" : "", col.className)}>
                     {col.render ? col.render(item) : (item as any)[col.key]}
                   </td>
                 ))}
                 {actions && (
-                  <td className="px-5 py-3">{actions(item)}</td>
+                  <td className="px-6 py-4 pr-8">
+                    <div className="flex justify-end opacity-70 group-hover:opacity-100 transition-opacity">
+                      {actions(item)}
+                    </div>
+                  </td>
                 )}
               </tr>
             ))}

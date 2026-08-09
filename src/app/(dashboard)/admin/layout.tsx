@@ -4,6 +4,7 @@ import * as Icons from "lucide-react";
 
 const adminNavItems: { title: string; href: string; icon: keyof typeof Icons }[] = [
   { title: "Dashboard", href: "/admin", icon: "LayoutDashboard" },
+  { title: "Academic Setup", href: "/admin/academics/setup", icon: "Settings" },
   { title: "Users", href: "/admin/users", icon: "Users" },
   { title: "Campuses", href: "/admin/campuses", icon: "Building" },
   { title: "Departments", href: "/admin/departments", icon: "Building2" },

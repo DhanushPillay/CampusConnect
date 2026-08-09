@@ -7,12 +7,12 @@ const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"
 const HOURS = Array.from({ length: 8 }, (_, i) => i + 8) // 8AM to 3PM
 
 const dayColors: Record<string, string> = {
-  MONDAY: "bg-primary/10 border-primary/20",
-  TUESDAY: "bg-secondary/10 border-secondary/20",
-  WEDNESDAY: "bg-accent/10 border-accent/20",
-  THURSDAY: "bg-primary/10 border-primary/20",
-  FRIDAY: "bg-secondary/10 border-secondary/20",
-  SATURDAY: "bg-accent/10 border-accent/20",
+  MONDAY: "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20 text-blue-900",
+  TUESDAY: "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-900",
+  WEDNESDAY: "bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 text-purple-900",
+  THURSDAY: "bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20 text-amber-900",
+  FRIDAY: "bg-pink-500/10 border-pink-500/20 hover:bg-pink-500/20 text-pink-900",
+  SATURDAY: "bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-900",
 }
 
 export default async function TimetablePage() {
@@ -43,14 +43,14 @@ export default async function TimetablePage() {
         <StatCard label="Classes Scheduled" value={new Set(entries.map((e) => e.classId)).size} accentColor="secondary" />
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden bg-white/60 backdrop-blur-xl border-border/40 shadow-xl shadow-primary/5 rounded-3xl p-2">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-border">
-                <th className="px-4 py-3 font-serif text-sm font-semibold text-foreground/70 w-24">Time</th>
+              <tr className="border-b border-border/40">
+                <th className="px-6 py-4 font-display text-xs font-bold text-muted-foreground uppercase tracking-wider w-24">Time</th>
                 {DAYS.map((day) => (
-                  <th key={day} className="px-4 py-3 font-serif text-sm font-semibold text-foreground/70 min-w-[140px]">
+                  <th key={day} className="px-6 py-4 font-display text-xs font-bold text-muted-foreground uppercase tracking-wider min-w-[180px]">
                     {day.charAt(0) + day.slice(1).toLowerCase()}
                   </th>
                 ))}
@@ -58,25 +58,27 @@ export default async function TimetablePage() {
             </thead>
             <tbody>
               {HOURS.map((hour) => (
-                <tr key={hour} className="border-b border-border/50">
-                  <td className="px-4 py-2 font-hand text-lg text-foreground/60">
+                <tr key={hour} className="border-b border-border/20 last:border-0 hover:bg-white/40 transition-colors">
+                  <td className="px-6 py-4 font-display font-medium text-muted-foreground">
                     {String(hour).padStart(2, "0")}:00
                   </td>
                   {DAYS.map((day) => {
                     const entry = grid[day][hour]
                     return (
-                      <td key={day} className="px-2 py-2">
+                      <td key={day} className="p-2">
                         {entry ? (
-                          <div className={`p-2 border text-xs ${dayColors[day]}`}>
-                            <div className="font-serif font-bold text-sm">{entry.subject.name}</div>
-                            <div className="font-hand text-foreground/60 mt-1">{entry.teacher.name}</div>
-                            <div className="font-hand text-foreground/40">{entry.class.name} {entry.class.section}</div>
-                            {entry.classroom && (
-                              <div className="font-hand text-foreground/40">{entry.classroom.name}</div>
-                            )}
+                          <div className={`p-4 rounded-2xl border transition-all duration-300 cursor-default ${dayColors[day]}`}>
+                            <div className="font-display font-bold text-sm mb-1">{entry.subject.name}</div>
+                            <div className="text-xs opacity-80 font-medium">{entry.teacher.name}</div>
+                            <div className="text-xs opacity-60 mt-2 flex items-center justify-between">
+                              <span>{entry.class.name} {entry.class.section}</span>
+                              {entry.classroom && (
+                                <span className="px-2 py-0.5 rounded-full bg-black/5">{entry.classroom.name}</span>
+                              )}
+                            </div>
                           </div>
                         ) : (
-                          <div className="p-2 text-foreground/10 font-hand text-sm">—</div>
+                          <div className="flex items-center justify-center p-4 text-muted-foreground/20 text-sm">—</div>
                         )}
                       </td>
                     )
