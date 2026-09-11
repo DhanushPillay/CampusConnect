@@ -1,32 +1,35 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans, Public_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
-const inter = Inter({ 
+const display = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["600", "700", "800"],
+  variable: "--font-display",
 });
 
-const outfit = Outfit({ 
+const body = Public_Sans({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-body",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
-  title: "CampusConnect",
-  description: "A Unified Web Platform for Institutional Academic Management",
+  title: "MIT-ADT CampusConnect",
+  description: "Academic management for MIT-ADT — attendance, grades, timetable, assignments, exams, fees.",
 };
 
-import { Providers } from "@/components/providers";
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased selection:bg-primary/20 selection:text-primary`}>
+      <body
+        className={`${display.variable} ${body.variable} ${mono.variable} font-sans antialiased`}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>
