@@ -26,6 +26,17 @@ yarn-error.log*
 .env*.local
 .env
 
+# local sqlite (seeded per machine)
+prisma/dev.db*
+
+# logs
+*.log
+
+# agent / tooling dirs (never commit)
+.opencode/
+.omo/
+.playwright-mcp/
+
 # vercel
 .vercel
 
