@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Reveal } from "@/components/motion";
 import { getUsers, toggleUserActive, createUser } from "@/lib/actions/admin";
-import { FormSelect } from "../_components";
+import { FormSelect } from "../components";
 
 export const dynamic = "force-dynamic";
 
