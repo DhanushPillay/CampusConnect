@@ -1,234 +1,67 @@
 # Architecture
 
-System architecture for CampusConnect.
+Next.js 14.2.7 App Router + next-auth 4.24.7 (Credentials, JWT) + Prisma 5.19.1 + SQLite. Server Actions are the only data layer.
 
 ---
 
-## System Overview
+## Runtime diagram
 
 ```
-                          ┌─────────────────────┐
-                          │      Browser        │
-                          │   (Student/Teacher  │
-                          │    /Admin)          │
-                          └──────────┬──────────┘
-                                     │
-                          ┌──────────▼──────────┐
-                          │      Vercel         │
-                          │  (Next.js SSR +     │
-                          │   API Routes)       │
-                          │                     │
-                          │  ┌───────────────┐  │
-                          │  │  Middleware    │  │
-                          │  │  (Auth + Role) │  │
-                          │  └───────┬───────┘  │
-                          │          │          │
-                          │  ┌───────▼───────┐  │
-                          │  │  API Routes   │  │
-                          │  │  /api/*       │  │
-                          │  └───────┬───────┘  │
-                          └──────────┼──────────┘
-                                     │
-                    ┌────────────────┼────────────────┐
-                    │                │                │
-           ┌────────▼───────┐ ┌─────▼──────┐ ┌───────▼───────┐
-           │   Supabase     │ │  Resend    │ │   Razorpay    │
-           │   (PostgreSQL  │ │  (Email)   │ │   (Payments)  │
-           │    + Auth +    │ │            │ │               │
-           │    Storage +   │ └────────────┘ └───────────────┘
-           │    Realtime)   │
-           └────────────────┘
+Browser
+  |
+  v
+Next.js App Router (SSR pages under /admin /teacher /student, /login)
+  |
+  +-- src/middleware.ts (withAuth; /login role redirect; 403 on wrong role)
+  |
+  +-- Server Actions: src/lib/actions/{admin,teacher,student}.ts ("use server")
+  |     |
+  |     v
+  |   Prisma Client --> SQLite (prisma/dev.db)
+  |
+  +-- Single API route: src/app/api/auth/[...nextauth]/route.ts
 ```
+
+No other `/api/*` routes exist. No gateway, CDN, mail, payment, realtime, or container layer.
 
 ---
 
-## How Roles Connect
+## Request flow
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        INSTITUTION                              │
-│                                                                 │
-│  ┌──────────┐                                                   │
-│  │  ADMIN   │ Creates accounts for:                             │
-│  │          │   ├── Teachers (email + password)                 │
-│  │          │   └── Students (email + password)                 │
-│  │          │                                                   │
-│  │          │ Manages:                                          │
-│  │          │   ├── Campuses                                    │
-│  │          │   ├── Departments, Classes, Subjects              │
-│  │          │   ├── Fee structures                              │
-│  │          │   ├── Exams and grading scales                    │
-│  │          │   └── Notices and announcements                   │
-│  └────┬─────┘                                                   │
-│       │                                                         │
-│       ├── Assigns teacher → to classes                          │
-│       ├── Assigns student → to classes                          │
-│       └── Assigns teacher → to subjects                         │
-│                                                                 │
-│  ┌──────────┐                                                   │
-│  │ TEACHER  │ Works with:                                       │
-│  │          │   ├── Their assigned classes                      │
-│  │          │   ├── Their assigned subjects                     │
-│  │          │   └── Students in those classes                   │
-│  │          │                                                   │
-│  │          │ Actions:                                          │
-│  │          │   ├── Marks attendance                            │
-│  │          │   ├── Enters grades                               │
-│  │          │   ├── Creates assignments                         │
-│  │          │   ├── Creates exams                               │
-│  │          │   ├── Uploads study material                      │
-│  │          │   └── Chats with students                         │
-│  └────┬─────┘                                                   │
-│       │                                                         │
-│       │ Teacher ←──→ Student (via chat, grades, attendance)     │
-│       │                                                         │
-│  ┌────▼─────┐                                                   │
-│  │ STUDENT  │ Views/Actions:                                    │
-│  │          │   ├── Own attendance, grades, timetable           │
-│  │          │   ├── Submits assignments                         │
-│  │          │   ├── Takes online exams                          │
-│  │          │   ├── Pays fees (Razorpay)                        │
-│  │          │   ├── Downloads certificates                      │
-│  │          │   └── Chats with teachers                         │
-│  └──────────┘                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
+1. `middleware.ts` (`withAuth`, `authorized: () => true`) runs on `/admin/:path*`, `/teacher/:path*`, `/student/:path*`, `/login`.
+2. On `/login`: logged-in users redirect by role (ADMIN -> `/admin`, TEACHER -> `/teacher`, STUDENT -> `/student`). Anonymous users pass through.
+3. On dashboard paths: anonymous -> `/login`; wrong role -> `403 Forbidden`.
+4. Pages call Server Actions directly with the session user id from `getServerSession(authOptions)`. Actions query Prisma and call `revalidatePath` on the affected dashboard paths.
+
+## Auth
+
+next-auth Credentials provider (`src/lib/auth-options.ts`): Prisma + bcrypt `authorize`, JWT strategy, `role` added to token and session (`src/types/next-auth.d.ts`). Password hashing helper in `src/lib/auth.ts`.
+
+## Layout / motion
+
+- `src/components/layouts/shell.tsx` (`Shell`): white sidebar with crest, nav links, user footer; breadcrumb topnav; `PageTransition` wraps `<main>` only.
+- `src/components/motion.tsx`: `PageTransition` (`AnimatePresence mode="sync"`, 180ms fade/slide), `Reveal`.
+- `src/components/providers.tsx`: `SessionProvider` + `MotionConfig reducedMotion="user"`.
+- `src/app/(dashboard)/loading.tsx`: `CardsSkeleton`.
+- `src/components/ui` (9 files): button, input, card, badge (+ `StatusBadge`), table, dialog, select, avatar, skeleton.
+
+## Authorization / scoping
+
+Role is a `String` on `User` (`ADMIN` / `TEACHER` / `STUDENT`) plus `isActive`. Scoping uses relations, not tenant columns:
+
+- Student sees data via `Enrollment` (own `studentId` -> `classId` -> subjects, assignments, timetable, published exams).
+- Teacher sees data via `Subject.teacherId` / `Timetable.teacherId` / `Assignment.teacherId` / `Exam.createdById` / `Attendance.markedById`, plus `getClassRoster(classId)` aggregates.
+- Admin has no scope filter (counts + `take` caps: users 100, timetable 100, fee invoices 200, students/teachers 200 each).
+
+Grade letters are computed in `gradeSubmission`: A>=90, B>=75, C>=60, D>=40, else F. Exam scoring is MCQ auto-score in `submitExam`. Fee status flips to PAID when payments cover the invoice, PARTIAL otherwise.
 
 ---
 
-## Multi-Campus Data Model
-
-Every major table has a `campusId` column. Data is isolated per campus, but the central admin can see everything.
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    CENTRAL ADMIN                         │
-│  Can see: All campuses, all data, cross-campus reports  │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-          ┌────────────┼────────────┐
-          │            │            │
-   ┌──────▼──────┐ ┌──▼────────┐ ┌─▼──────────┐
-   │   Campus A  │ │ Campus B  │ │ Campus C   │
-   │             │ │           │ │            │
-   │ Students    │ │ Students  │ │ Students   │
-   │ Teachers    │ │ Teachers  │ │ Teachers   │
-   │ Classes     │ │ Classes   │ │ Classes    │
-   │ Fee struct  │ │ Fee struct│ │ Fee struct │
-   │ Timetable   │ │ Timetable │ │ Timetable  │
-   └─────────────┘ └───────────┘ └────────────┘
-```
-
-**Rules:**
-- A student belongs to one campus
-- A teacher can belong to multiple campuses
-- Fee structures are per-campus
-- Timetables are per-campus
-- The central admin dashboard aggregates data across all campuses
-
----
-
-## Auth Flow
-
-```
-┌─────────┐     ┌──────────┐     ┌──────────┐
-│  User   │────▶│ Supabase │────▶│  JWT     │
-│ (login) │     │  Auth    │     │  Token   │
-└─────────┘     └──────────┘     └────┬─────┘
-                                      │
-                              ┌───────▼───────┐
-                              │   Middleware   │
-                              │               │
-                              │ 1. Verify JWT │
-                              │ 2. Check role │
-                              │ 3. Route to   │
-                              │    dashboard  │
-                              └───────┬───────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    │                 │                 │
-             ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
-             │  /admin/*   │  │ /teacher/*  │  │ /student/*  │
-             │  Admin      │  │  Teacher    │  │  Student    │
-             │  Dashboard  │  │  Dashboard  │  │  Dashboard  │
-             └─────────────┘  └─────────────┘  └─────────────┘
-```
-
-**Role-based middleware:**
-- `/admin/*` routes → only ADMIN role
-- `/teacher/*` routes → only TEACHER role
-- `/student/*` routes → only STUDENT role
-- API routes check role + ownership (e.g., teacher can only mark attendance for their classes)
-
----
-
-## Real-time Chat Flow
-
-```
-┌──────────┐                    ┌──────────┐
-│ Student  │◀──── Supabase ────▶│ Teacher  │
-│ (chat)   │     Realtime       │ (chat)   │
-└────┬─────┘    (WebSocket)     └────┬─────┘
-     │                               │
-     └───────────┬───────────────────┘
-                 │
-        ┌────────▼────────┐
-        │   chats table   │
-        │   messages table│
-        │                 │
-        │  student_id     │
-        │  teacher_id     │
-        │  content        │
-        │  sent_at        │
-        │  read_at        │
-        └─────────────────┘
-```
-
-**How it works:**
-1. Student opens chat → creates/gets chat session with teacher
-2. Both subscribe to Supabase Realtime channel for that chat
-3. New messages are inserted into `messages` table
-4. Supabase broadcasts to both subscribers in real-time
-5. `read_at` is updated when the other party opens the message
-
----
-
-## Payment Flow (Razorpay)
-
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│ Student  │────▶│  API     │────▶│ Razorpay │────▶│ Webhook  │
-│ clicks   │     │ creates  │     │ checkout │     │ confirms │
-│ "Pay"    │     │ order    │     │ page     │     │ payment  │
-└──────────┘     └──────────┘     └──────────┘     └────┬─────┘
-                                                         │
-                                                ┌────────▼────────┐
-                                                │  Update DB:     │
-                                                │  invoice status │
-                                                │  = PAID         │
-                                                │  Store payment  │
-                                                │  reference      │
-                                                └─────────────────┘
-```
-
-**Flow:**
-1. Student views unpaid fee invoices
-2. Clicks "Pay Now" → API creates Razorpay order
-3. Razorpay checkout page opens (UPI, card, netbanking)
-4. On success, Razorpay sends webhook to `/api/webhooks/razorpay`
-5. Webhook verifies signature, updates invoice status to PAID
-6. Receipt is generated and available for download
-
----
-
-## Technology Decisions
+## Technology decisions
 
 | Decision | Why |
 |---|---|
-| Next.js App Router | SSR for dashboards, API routes in one project |
-| Supabase over raw PostgreSQL | Free auth, storage, realtime included |
-| Prisma over Drizzle | Better DX, auto-generated types, migration workflow |
-| shadcn/ui over component libraries | No bundle bloat, copy-paste components, fully customizable |
-| Supabase Realtime over Socket.io | No extra server needed, free tier included |
-| Razorpay over Stripe | India-focused, no monthly cost, 2% transaction fee |
-| Vercel over AWS | Zero config for Next.js, free tier, no server management |
+| App Router Server Actions only | Single data layer, no REST to maintain |
+| next-auth Credentials + JWT | Email/password login with role on token/session |
+| Prisma + SQLite | File DB, 16 models, relation cascades in schema |
+| Shell + PageTransition + skeletons | Shared dashboard chrome, 180ms transitions, loading state |
