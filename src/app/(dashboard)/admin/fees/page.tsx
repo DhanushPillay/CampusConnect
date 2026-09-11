@@ -29,7 +29,7 @@ import {
 } from "@/lib/actions/admin";
 import { formatINR } from "@/lib/utils";
 import { Wallet, CalendarDays } from "lucide-react";
-import { FormSelect } from "../_components";
+import { FormSelect } from "../components";
 
 export const dynamic = "force-dynamic";
 

@@ -25,7 +25,7 @@ import {
   createTimetableEntry,
   deleteTimetableEntry,
 } from "@/lib/actions/admin";
-import { FormSelect } from "../_components";
+import { FormSelect } from "../components";
 
 export const dynamic = "force-dynamic";
 
