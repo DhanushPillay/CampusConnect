@@ -111,13 +111,6 @@ export default function LoginPage() {
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               {busy ? "Signing in…" : "Sign in"}
             </Button>
-
-            <div className="mt-5 rounded-lg bg-surface p-3 text-xs leading-relaxed text-sub">
-              <p className="font-semibold text-ink">Demo accounts · password123</p>
-              <p>admin@mitadt.edu.in</p>
-              <p>sneha.kulkarni@mitadt.edu.in</p>
-              <p>aditya.shinde@mitadt.edu.in</p>
-            </div>
           </form>
         </Reveal>
       </div>
