@@ -12,31 +12,12 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !user.isActive) {
-          throw new Error("User not found or inactive");
-        }
-
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isValid) {
-          throw new Error("Invalid password");
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          campusId: user.campusId,
-        };
+        if (!credentials?.email || !credentials?.password) throw new Error("Invalid credentials");
+        const user = await prisma.user.findUnique({ where: { email: credentials.email } });
+        if (!user || !user.isActive) throw new Error("User not found or inactive");
+        const ok = await bcrypt.compare(credentials.password, user.password);
+        if (!ok) throw new Error("Invalid password");
+        return { id: user.id, email: user.email, name: user.name, role: user.role };
       },
     }),
   ],
@@ -44,8 +25,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role as string;
-        token.campusId = user.campusId;
+        token.role = (user as { role?: string }).role as string;
       }
       return token;
     },
@@ -53,15 +33,10 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-        session.user.campusId = token.campusId as string | null;
       }
       return session;
     },
   },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
+  pages: { signIn: "/login" },
+  session: { strategy: "jwt" },
 };
