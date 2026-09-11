@@ -1,49 +1,85 @@
-import { StatCard } from "@/components/ui/stat-card"
-import { PageHeader } from "@/components/ui/page-header"
-import { getCurrentUser } from "@/lib/auth"
-import { getSubjectsByTeacher } from "@/lib/actions/subjects"
-import { getAssignments } from "@/lib/actions/assignments"
-import { getAttendanceRecords } from "@/lib/actions/attendance"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/badge";
+import { Reveal } from "@/components/motion";
+import { BookOpen, FileText, ClipboardCheck, CalendarDays } from "lucide-react";
+import { getTeacherDashboard, getPendingSubmissions, getTeacherSubjects } from "@/lib/actions/teacher";
+import { getSession } from "@/lib/auth";
+import { formatDate } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
 
 export default async function TeacherDashboard() {
-  const user = await getCurrentUser()
-  const userId = user?.id || ""
+  const session = await getSession();
+  const teacherId = session!.user.id;
+  const [d, pending, subjects] = await Promise.all([
+    getTeacherDashboard(teacherId),
+    getPendingSubmissions(teacherId),
+    getTeacherSubjects(teacherId),
+  ]);
 
-  const today = new Date()
-  
-  const [subjects, assignments, todayAttendance] = await Promise.all([
-    getSubjectsByTeacher(userId),
-    getAssignments({ teacherId: userId }),
-    getAttendanceRecords({ teacherId: userId, date: today }),
-  ])
+  const stats = [
+    { label: "Subjects", value: String(d.subjects), icon: BookOpen },
+    { label: "Assignments", value: String(d.assignments), icon: FileText },
+    { label: "Pending grading", value: String(d.pendingSubs), icon: ClipboardCheck },
+    { label: "Marked today", value: String(d.todayAttendance), icon: CalendarDays },
+  ];
 
-  // Calculate Students
-  const totalStudents = subjects.reduce((s, sub) => s + ((sub.class as any)._count?.studentClasses || 0), 0)
-
-  // Calculate Pending Grading
-  const pendingGrading = assignments.filter(
-    (a) => a.submissions && a.submissions.some((s: any) => !s.marksObtained)
-  ).length
-
-  // Calculate Attendance Rate
-  const presentCount = todayAttendance.filter((r) => r.status === "PRESENT").length
-  const attendanceRate = todayAttendance.length > 0
-    ? Math.round((presentCount / todayAttendance.length) * 100)
-    : 0
+  const first = subjects[0];
+  const subtitle = first
+    ? `${first.class.name} · ${first.name} · ${formatDate(new Date())}`
+    : `${d.subjects} subjects · ${d.pendingSubs} to grade · ${formatDate(new Date())}`;
 
   return (
     <div>
-      <PageHeader
-        title="Educator Panel."
-        subtitle={`Welcome back, ${user?.name}`}
-      />
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="My Classes" value={subjects.length} description="Subjects this semester" accentColor="primary" />
-        <StatCard label="Students" value={totalStudents} description="Across all sections" accentColor="secondary" />
-        <StatCard label="Pending Review" value={pendingGrading} description="Assignments to grade" accentColor={pendingGrading > 0 ? "accent" : "primary"} />
-        <StatCard label="Attendance Rate" value={`${attendanceRate}%`} description="Average today" accentColor={attendanceRate >= 75 ? "primary" : "destructive"} />
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-extrabold text-ink">
+          Hello, {session!.user.name?.split(" ")[0] ?? "Teacher"}
+        </h1>
+        <p className="mt-1 text-sm text-sub">{subtitle}</p>
       </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {stats.map((s, i) => (
+          <Reveal key={s.label} delay={i * 0.05}>
+            <Card>
+              <CardContent>
+                <div className="flex items-center gap-2 text-sub">
+                  <s.icon className="h-4 w-4 text-brand-600" />
+                  <p className="text-sm">{s.label}</p>
+                </div>
+                <p className="mt-2 font-display text-2xl font-extrabold text-ink">{s.value}</p>
+              </CardContent>
+            </Card>
+          </Reveal>
+        ))}
+      </div>
+      <Reveal delay={0.2}>
+        <Card className="mt-4">
+          <CardHeader>
+            <div>
+              <CardTitle>Needs grading ({pending.length})</CardTitle>
+              <CardDescription>{pending.length === 0 ? "All caught up" : "Submissions waiting for marks"}</CardDescription>
+            </div>
+            {pending.length > 0 ? <StatusBadge status="PENDING" /> : <StatusBadge status="GRADED" />}
+          </CardHeader>
+          <CardContent>
+            {pending.length === 0 ? (
+              <p className="text-sm text-sub">Nothing waiting. All caught up.</p>
+            ) : (
+              <ul className="divide-y divide-border/60">
+                {pending.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between py-2.5 text-sm">
+                    <span>
+                      <span className="font-medium text-ink">{p.student.name}</span>
+                      <span className="text-sub"> · {p.assignment.title}</span>
+                    </span>
+                    <span className="text-sm text-sub">/ {p.assignment.maxMarks}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </Reveal>
     </div>
-  )
+  );
 }
