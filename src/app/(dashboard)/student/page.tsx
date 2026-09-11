@@ -1,52 +1,79 @@
-import { StatCard } from "@/components/ui/stat-card"
-import { PageHeader } from "@/components/ui/page-header"
-import { getCurrentUser } from "@/lib/auth"
-import { getStudentGradeSummary } from "@/lib/actions/grades"
-import { getStudentAttendanceSummary } from "@/lib/actions/attendance"
-import { getStudentFees } from "@/lib/actions/fees"
-import { getStudentClasses } from "@/lib/actions/student"
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { Reveal } from "@/components/motion";
+import { ClipboardCheck, Award, GraduationCap, Wallet } from "lucide-react";
+import { getStudentDashboard } from "@/lib/actions/student";
+import { getSession } from "@/lib/auth";
+import { formatINR } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
 
 export default async function StudentDashboard() {
-  const user = await getCurrentUser()
-  const userId = user?.id || ""
+  const session = await getSession();
+  const d = await getStudentDashboard(session!.user.id);
 
-  // Fetch all necessary data concurrently
-  const [grades, attendance, fees, enrollments] = await Promise.all([
-    getStudentGradeSummary(userId),
-    getStudentAttendanceSummary(userId),
-    getStudentFees(userId),
-    getStudentClasses(userId),
-  ])
-
-  // Calculate CGPA
-  const currentCGPA = grades[0]?.cgpa || 0
-
-  // Calculate Credits/Subjects
-  const totalSubjects = enrollments.reduce((s, e) => s + e.class.subjects.length, 0)
-
-  // Calculate Attendance
-  const overallTotal = attendance.reduce((s, r) => s + r.total, 0)
-  const overallPresent = attendance.reduce((s, r) => s + r.present, 0)
-  const attendanceRate = overallTotal > 0 ? Math.round((overallPresent / overallTotal) * 100) : 0
-
-  // Calculate Fees
-  const totalFees = fees.reduce((s, i) => s + i.amount, 0)
-  const totalPaid = fees.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amount, 0)
-  const pendingFees = totalFees - totalPaid
+  const stats = [
+    { label: "Attendance", value: `${d.attendancePct}%`, hint: "Across subjects", icon: ClipboardCheck },
+    { label: "Average score", value: `${d.avgPct}%`, hint: "Graded work", icon: Award },
+    { label: "Enrollments", value: String(d.subjects), hint: "Active classes", icon: GraduationCap },
+    {
+      label: "Fees due",
+      value: formatINR(d.pendingFees),
+      hint: `${d.pendingCount} unpaid`,
+      icon: Wallet,
+    },
+  ];
 
   return (
     <div>
-      <PageHeader
-        title="Student Portal."
-        subtitle={`Welcome back, ${user?.name}`}
-      />
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Current CGPA" value={currentCGPA || "—"} description="Latest semester" accentColor="primary" />
-        <StatCard label="Total Subjects" value={totalSubjects} description="Currently enrolled" accentColor="secondary" />
-        <StatCard label="Attendance" value={`${attendanceRate}%`} description={attendanceRate >= 75 ? "On track" : "Needs attention"} accentColor={attendanceRate >= 75 ? "primary" : "destructive"} />
-        <StatCard label="Pending Fees" value={`₹${pendingFees.toLocaleString("en-IN")}`} description={pendingFees > 0 ? "Outstanding balance" : "All cleared"} accentColor={pendingFees > 0 ? "accent" : "primary"} />
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-extrabold text-ink">
+          Hello, {session!.user.name?.split(" ")[0] ?? "Student"}
+        </h1>
+        <p className="mt-1 text-sm text-sub">Your week at a glance</p>
       </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {stats.map((s, i) => (
+          <Reveal key={s.label} delay={i * 0.05}>
+            <Card>
+              <CardContent>
+                <div className="flex items-center gap-2 text-sub">
+                  <s.icon className="h-4 w-4 text-brand-600" />
+                  <p className="text-sm">{s.label}</p>
+                </div>
+                <p className="mt-2 font-display text-2xl font-extrabold text-ink">{s.value}</p>
+                <p className="mt-1 text-sm text-sub">{s.hint}</p>
+              </CardContent>
+            </Card>
+          </Reveal>
+        ))}
+      </div>
+      <Reveal delay={0.2}>
+        <Card className="mt-4">
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <Link
+                href="/student/attendance"
+                className="rounded-lg bg-brand-50 px-4 py-2 font-semibold text-brand-700"
+              >
+                View attendance
+              </Link>
+              <Link
+                href="/student/assignments"
+                className="rounded-lg bg-brand-50 px-4 py-2 font-semibold text-brand-700"
+              >
+                Submit assignments
+              </Link>
+              <Link
+                href="/student/fees"
+                className="rounded-lg bg-brand-50 px-4 py-2 font-semibold text-brand-700"
+              >
+                Check fees
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </Reveal>
     </div>
-  )
+  );
 }
