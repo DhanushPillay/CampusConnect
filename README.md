@@ -1,212 +1,107 @@
 # CampusConnect
 
-A single web platform that gives Admin, Teacher, and Student each their own view, covering attendance, grades, timetable, assignments, notices, fees, chat, and analytics in one place.
+Single-campus academic platform (V1) for MIT-ADT: role-based dashboards for Admin, Teacher, and Student covering users, classes, timetable, attendance, assignments, MCQ exams, grades, and manual fee tracking.
 
-Built for multi-campus institutions with role-based access, real-time communication, and zero deployment cost.
+## Stack
 
----
+| Layer | Tech |
+|---|---|
+| Framework | Next.js 14.2.7 (App Router, TypeScript) |
+| Auth | next-auth 4.24.7, Credentials provider, bcrypt, JWT |
+| DB / ORM | SQLite (`DATABASE_URL=file:./dev.db`) + Prisma 5.19.1 |
+| Backend | Server Actions (`src/lib/actions/`) |
+| Styling | Tailwind CSS + shadcn-style UI |
+| API routes | One: `/api/auth/[...nextauth]` |
 
-## Features
+No online payments, email service, or cloud storage in V1.
 
-### Admin
-- Create and manage teacher/student accounts (email + password)
-- Multi-campus management with central dashboard
-- Academic setup (departments, classes, subjects, calendar)
-- Timetable creation with conflict detection
-- Attendance and grade oversight across all classes
-- Fee structure, invoicing, and Razorpay payment tracking
-- Exam scheduling (MCQ + subjective)
-- Certificate generation (bonafide, transfer, migration)
-- Analytics dashboard with at-risk student detection
+## What each role can do
 
-### Teacher
-- Mark daily attendance
-- Enter and publish grades
-- Create assignments with deadlines and file uploads
-- Upload study material (PDFs, links, videos)
-- Create MCQ exams (auto-grading) and subjective exams
-- Chat with students
-- Post announcements to classes
-- View class analytics
+Login redirects by role: ADMIN → `/admin`, TEACHER → `/teacher`, STUDENT → `/student`.
 
-### Student
-- View attendance record and percentage
-- View grades, CGPA, performance history
-- View class timetable
-- Submit assignments and view feedback
-- Take online exams (MCQ timed + subjective)
-- Download study materials
-- Pay fees online via Razorpay
-- Request and download certificates
-- Chat with teachers
-- Search library books
+**Admin** (`src/lib/actions/admin.ts`)
+- `createUser`, `toggleUserActive`
+- `enrollStudent` / `unenrollStudent` (`enroll/unenrollStudent` naming in UI)
+- `createClass`, `createSubject`, `assignTeacher`
+- `createTimetableEntry` / `deleteTimetableEntry`, `getTimetable`
+- `createFeeStructure` (auto-creates UNPAID invoices for enrolled students), `createFeeInvoice`, `recordFeePayment`
 
----
+**Teacher** (`src/lib/actions/teacher.ts`)
+- `bulkMarkAttendance` (date + class scoped), `getAttendanceHistory`, `getClassRoster`
+- `createAssignment`, `gradeSubmission` (upserts `Grade` with letter)
+- `createExam`, `addQuestion` / `updateQuestion` / `deleteQuestion`, `publishExam`, `getExamAttempts`
 
-## Tech Stack
+**Student** (`src/lib/actions/student.ts`)
+- `submitAssignment` (resubmit allowed while ungraded), `submitExam` (MCQ auto-graded, single attempt, no retake), `payFee`
+- Reads: own attendance, grades, timetable, fees, assignments, published exams
 
-| Layer          | Technology                          |
-|----------------|-------------------------------------|
-| Frontend       | Next.js 14 (TypeScript, App Router) |
-| Styling        | Tailwind CSS + shadcn/ui            |
-| Backend        | Next.js API Routes                  |
-| Database       | PostgreSQL (Supabase free tier)     |
-| ORM            | Prisma                              |
-| Auth           | Supabase Auth (JWT, role-based)     |
-| Real-time      | Supabase Realtime                   |
-| File Storage   | Supabase Storage                    |
-| Email          | Resend                              |
-| Payments       | Razorpay                            |
-| Deployment     | Vercel (free tier)                  |
+Rules: exams are MCQ-only (options stored as JSON, `correctOption` index). Fees are manual cash-style records (`method` defaults CASH, `status` COMPLETED via `payFee` / `recordFeePayment`). No online gateway.
 
-**Total deployment cost: ₹0/month**
-
-See [docs/architecture.md](docs/architecture.md) for full architecture details.
-
----
-
-## Project Structure
-
-```
-campus-connect/
-├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── (auth)/             # Login, register pages
-│   │   ├── (dashboard)/        # Dashboard layouts per role
-│   │   │   ├── admin/          # Admin dashboard pages
-│   │   │   ├── teacher/        # Teacher dashboard pages
-│   │   │   └── student/        # Student dashboard pages
-│   │   └── api/                # API route handlers
-│   │       ├── auth/           # Authentication endpoints
-│   │       ├── admin/          # Admin CRUD endpoints
-│   │       ├── teacher/        # Teacher endpoints
-│   │       ├── student/        # Student endpoints
-│   │       └── webhooks/       # Razorpay webhooks
-│   ├── components/             # Reusable UI components
-│   │   ├── ui/                 # shadcn/ui base components
-│   │   ├── forms/              # Form components
-│   │   └── layouts/            # Layout components
-│   ├── lib/                    # Utilities
-│   │   ├── prisma.ts           # Prisma client singleton
-│   │   ├── supabase.ts         # Supabase client
-│   │   ├── auth.ts             # Auth helpers
-│   │   ├── razorpay.ts         # Razorpay integration
-│   │   └── utils.ts            # Shared utilities
-│   ├── types/                  # TypeScript type definitions
-│   └── middleware.ts           # Role-based route protection
-├── prisma/
-│   ├── schema.prisma           # Database schema
-│   ├── migrations/             # Migration history
-│   └── seed.ts                 # Seed script
-├── docs/                       # Documentation
-├── public/                     # Static assets
-├── .env.example                # Environment variables template
-├── tailwind.config.ts          # Tailwind configuration
-├── tsconfig.json               # TypeScript configuration
-└── package.json
-```
-
----
-
-## Quick Start
-
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-- A [Supabase](https://supabase.com) account (free)
-- A [Vercel](https://vercel.com) account (free)
-
-### 1. Clone and install
+## Quickstart
 
 ```bash
-git clone https://github.com/your-username/campus-connect.git
-cd campus-connect
 npm install
+cp .env.example .env.local   # Windows: copy .env.example .env.local
+npx prisma db push
+npx prisma db seed            # runs node prisma/seed.js per package.json
+npm run dev                   # http://localhost:3000
 ```
 
-### 2. Set up environment variables
+## Demo accounts (password: `password123`)
 
-```bash
-cp .env.example .env.local
-```
+| Role | Email |
+|---|---|
+| Admin | admin@mitadt.edu.in |
+| Teacher | sneha.kulkarni@mitadt.edu.in |
+| Student | aditya.shinde@mitadt.edu.in |
 
-Fill in your Supabase and Razorpay keys. See [docs/environment.md](docs/environment.md) for all variables.
-
-### 3. Set up database
-
-```bash
-npx prisma migrate dev
-npx prisma db seed
-```
-
-### 4. Start development server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-### 5. Login with seeded admin
+## Environment (.env.example)
 
 ```
-Email: admin@campusconnect.com
-Password: admin123
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="change-me-in-production"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
-
----
 
 ## Scripts
 
-| Command                  | Description                    |
-|--------------------------|--------------------------------|
-| `npm run dev`            | Start development server       |
-| `npm run build`          | Build for production           |
-| `npm start`              | Start production server        |
-| `npm run lint`           | Run ESLint                     |
-| `npm run db:migrate`     | Run Prisma migrations          |
-| `npm run db:seed`        | Seed database with sample data |
-| `npm run db:studio`      | Open Prisma Studio             |
-| `npm run db:generate`    | Generate Prisma client         |
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server |
+| `npm run build` | Build for production |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint |
 
----
+## Project tree (real)
 
-## Deployment
+```
+src/
+  app/
+    page.tsx                          # landing
+    (auth)/login/page.tsx
+    (dashboard)/admin/                # page, users, classes, subjects, timetable, fees
+    (dashboard)/teacher/              # page, classes, classes/[classId], timetable,
+                                      # attendance, attendance/mark, assignments, exams
+    (dashboard)/student/              # page, attendance, assignments, exams, exams/[id],
+                                      # grades, timetable, fees
+    api/auth/[...nextauth]/route.ts   # only API route
+  lib/actions/                        # admin.ts, teacher.ts, student.ts
+  lib/                                # auth.ts, auth-options.ts, prisma.ts, utils.ts
+  middleware.ts                       # role-direct on /login
+prisma/
+  schema.prisma                       # 16 models
+  seed.js
+public/mit-adt-crest.png
+```
 
-See [docs/deployment.md](docs/deployment.md) for the complete deployment guide.
+Models (16): User, Department, Class, Enrollment, Subject, Timetable, Attendance, Assignment, Submission, Exam, Question, ExamSubmission, Grade, FeeStructure, FeeInvoice, FeePayment.
 
-**TL;DR:**
-1. Push code to GitHub
-2. Connect repo to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
+Design: MIT-ADT Light theme, white surfaces, brand purple `#5E2D91`, magenta `#C13584`, ember `#F26522`, crest at `public/mit-adt-crest.png`.
 
----
+## Roadmap (Planned, not shipped)
 
-## Documentation
-
-| File                                    | Description                          |
-|-----------------------------------------|--------------------------------------|
-| [Architecture](docs/architecture.md)    | System design, data flow, auth flow  |
-| [Features](docs/features.md)            | Full feature breakdown by role       |
-| [Deployment](docs/deployment.md)        | Step-by-step deployment guide        |
-| [API Reference](docs/api.md)            | All API routes and endpoints         |
-| [Database](docs/database.md)            | Schema, relationships, queries       |
-| [Environment](docs/environment.md)      | Environment variables reference      |
-
----
-
-## Team
-
-| Member    | Responsibility                                    |
-|-----------|---------------------------------------------------|
-| Dev A     | Auth, Admin Dashboard, Multi-campus, DB Schema    |
-| Dev B     | Attendance, Grades, Exams, Assignments, Analytics  |
-| Dev C     | Fees, Library, Hostel, Transport, Certificates     |
-| Dev D     | Chat, Notifications, Student/Teacher Dashboards     |
-
----
-
-## License
-
-MIT
+- Online payments (gateway integration)
+- Hostel / transport / library modules
+- Real-time chat and notices
+- CSV bulk import
