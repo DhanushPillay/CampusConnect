@@ -1,6 +1,8 @@
 # CampusConnect — RBAC, Dashboard UX & Core Workflow Architecture
 
-This document serves as the master specification for Role-Based Access Control (RBAC), UI/UX Dashboards, and Core Workflows in the CampusConnect platform. It maps directly to the Prisma schema and Next.js 14.2 App Router architecture.
+Master spec for Role-Based Access Control (RBAC), dashboards, and core workflows. Maps to the Prisma schema (SQLite) and Next.js App Router. Auth is next-auth JWT Credentials; roles are the `role` string on `User` (`ADMIN`, `TEACHER`, `STUDENT`).
+
+Only models listed here exist in `prisma/schema.prisma`. There is no Campus, AcademicYear/Semester, Book, Hostel, BusRoute, Notice, Chat, or StudyMaterial model.
 
 ---
 
@@ -8,111 +10,108 @@ This document serves as the master specification for Role-Based Access Control (
 
 **Notation:** `C` `R` `U` `D` = full access to that operation. `—` = no access. Scoped access is annotated in the Notes column.
 
-### 1.1 Identity & Infrastructure
+### 1.1 Identity & Organization
 
 | Model | Admin | Teacher | Student | Notes / Boundary |
 |---|---|---|---|---|
-| `User` | `C R U D` | `R` (own profile), `R` (roster of own classes) | `R U` (own profile, limited) | Admin is the only role that can create accounts, change roles, deactivate users. Teachers see student *names/contact* for their own classes only. |
-| `Campus` | `C R U D` | `R` (own campus) | `R` (own campus) | |
-| `Department` | `C R U D` | `R` (own dept) | `R` (own dept) | |
-| `Classroom` | `C R U D` | `R` | `R` (via Timetable) | |
+| `User` | `C R U D` | `R` (own profile), `R` (roster of own classes) | `R U` (own profile, limited) | Admin-only account creation via `createUser`, role changes, `toggleUserActive` soft-deactivate. |
+| `Department` | `C R U D` | `R` | `R` | |
+| `Class` | `C R U D` (`createClass`) | `R` (assigned only) | `R` (own class via `Enrollment`) | Teachers cannot create classes. |
+| `Enrollment` | `C D` (`enrollStudent` / `unenrollStudent`) | `R` (own class rosters via `getClassRoster`) | `R` (own only) | |
 
 ### 1.2 Academics & Scheduling
 
 | Model | Admin | Teacher | Student | Notes / Boundary |
 |---|---|---|---|---|
-| `AcademicYear` / `Semester` | `C R U D` | `R` | `R` | Only Admin opens/closes a semester. Teachers/Students only ever see the currently `ACTIVE` one plus historical. |
-| `Class` / `Subject` | `C R U D` | `R` (assigned only) | `R` (own class only) | Teachers cannot create subjects or classes. |
-| `Timetable` | `C R U D` | `R` (own schedule only) | `R` (own class schedule) | Teachers do **not** get direct write access to `Timetable` to prevent double-bookings. |
+| `Class` / `Subject` | `C R U D` (`createSubject`, `assignTeacher`) | `R` (assigned only) | `R` (own class only) | Teachers cannot create subjects or classes. |
+| `Timetable` | `C R U D` (`createTimetableEntry` / `deleteTimetableEntry`) | `R` (own schedule only) | `R` (own class schedule) | Teachers do **not** get write access to `Timetable`. |
 
 ### 1.3 Tracking & Evaluation
 
 | Model | Admin | Teacher | Student | Notes / Boundary |
 |---|---|---|---|---|
-| `Attendance` | `R` (all) + `U` (audited) | `C` (own class) `U` (same-day) | `R` (own record only) | **No hard `D` for anyone.** Attendance is an audit trail. |
-| `Assignment` | `R` (oversight) | `C R U D` (own subject) | `R` (own class) | Admin does not create assignments. |
-| `Submission` | `R` (oversight) | `R` (own assignments) + grade | `C` (upload) `U` (resubmit) | Students should **not** get `D` on a submitted file. |
-| `Exam` / `ExamQuestion` | `C R` | `C R U D` (own subject) | `R` (schedule only) | Separate query layer: teacher sees answers, student does not. |
-| `ExamSubmission` | `R` | `C R U` (grade, own subject) | `C R` (own only) | |
-| `Grade` | `R` + `U` (override, audited)| `C U` (own subject only) | `R` (published only) | Grading is a Teacher responsibility; Admin write access exists only as an audited override. |
+| `Attendance` | `R` (all) | `C U` via `bulkMarkAttendance` (upsert, own subjects) | `R` (own record only) | **No `D` for anyone.** Unique on `[studentId, subjectId, date]`; re-marking overwrites. |
+| `Assignment` | `R` (oversight) | `C R U D` (`createAssignment`, own subjects) | `R` (own class) | Admin does not create assignments. |
+| `Submission` | `R` (oversight) | `R` + grade (`gradeSubmission`, own assignments) | `C U` (`submitAssignment` upsert) | Unique on `[assignmentId, studentId]`; resubmit overwrites content. No `D` for students. |
+| `Exam` / `Question` | `R` | `C R U D` (`createExam`, `addQuestion`, `publishExam`, own subjects) | `R` (published only) | Teacher sees `correctOption`; students never query `Question.correctOption`. |
+| `ExamSubmission` | `R` | `R` (attempts via `getExamAttempts`, own exams) | `C U` (`submitExam`, own only) | Unique on `[examId, studentId]`; re-submit re-grades. |
+| `Grade` | `R` | `C U` (own subjects; written by `gradeSubmission` upsert) | `R` (own only) | Unique on `[studentId, subjectId]`. No publish gate — grading writes `Grade` directly. |
 
 ### 1.4 Financials
 
 | Model | Admin | Teacher | Student | Notes / Boundary |
 |---|---|---|---|---|
-| `FeeStructure` | `C R U D` | — | `R` (relevant to own class) | |
-| `FeeInvoice` | `C R U D` | — | `R` (own invoices only) | **Teachers cannot view fee invoices.** Hard boundary. |
-| `FeePayment` | `R` `U` (reconcile) | — | `C` (initiate) `R` (history)| Student never gets `U/D` on a payment record. |
+| `FeeStructure` | `C R U D` (`createFeeStructure`) | — | `R` (relevant to own class) | |
+| `FeeInvoice` | `C R U D` (`createFeeInvoice`) | — | `R` (own invoices only) | **Teachers cannot view fee invoices.** Hard boundary. |
+| `FeePayment` | `C` (`recordFeePayment`) `R` | — | `C` (`payFee`) `R` (history) | Manual records only — no payment gateway. Student never gets `U/D`. |
 
 ### 1.5 Facilities & Communication
 
-| Model | Admin | Teacher | Student | Notes / Boundary |
-|---|---|---|---|---|
-| `Book` / `BookIssue` | `C R U D` | `R` + `C` (self-issue) | `R` + `C` (hold/request) | |
-| `Hostel` / `Room` | `C R U D` | — | `R` (own allocation) | |
-| `BusRoute` / `Stop` | `C R U D` | `R` | `R` (own route) | |
-| `Notice` | `C R U D` (any scope) | `C` (own-class scope) `R` | `R` only | Explicit scoping required (`CAMPUS`, `DEPARTMENT`, `CLASS`). |
-| `Chat` / `Message` | `C R` (moderation) | `C R` (own conversations) | `C R` (own conversations)| Restrict Student↔Teacher chat creation to an existing enrollment relationship. |
+Not implemented. No `Book`, `Hostel`, `BusRoute`, `Notice`, `Chat`, or `StudyMaterial` models exist, so no permissions are defined for them. Do not add dashboard or workflow specs for these until the schema gains them.
 
 ---
 
 ## 2. Dashboard UX/UI Architecture
 
-**Aesthetic:** Glassmorphism stat cards on a white canvas, slate-800/600 typography hierarchy, generous whitespace, one accent color per role (indigo for Admin, teal for Teacher, amber for Student).
+**Aesthetic:** MIT-ADT Light — white cards on `surface #F6F5FA`, `ink #1E1B26` / `sub #655E76` text, brand purple `500 #7C3FB0` / `600 #5E2D91` / `700 #4A2373`, magenta `#C13584` for hero moments only, ember `#F26522` for CTAs sparingly. Plus Jakarta Sans display, Public Sans body, JetBrains Mono for data.
 
-### 2.1 Admin Dashboard (`/admin/dashboard`)
-*   **KPIs:** Active Students/Faculty, Today's Attendance %, Fee Collection, At-Risk Students, Timetable Conflicts, Hostel Occupancy %.
-*   **Quick Actions:** `+ New Notice`, `+ Enroll Student`, `Generate Invoices (bulk)`.
-*   **Primary Tables:** At-Risk Students table (high priority), Pending/Overdue Fee Payments, Recent Activity / Audit Log.
+### 2.1 Admin Dashboard (`/admin`)
+*   **KPIs:** Users, classes, subjects, fee collection (via `getAdminStats` / `getFeeOverview`).
+*   **Sections:** Users (`/admin/users`), Classes (`/admin/classes`), Subjects (`/admin/subjects`), Timetable (`/admin/timetable`), Fees (`/admin/fees`).
+*   **Quick Actions:** `Create User`, `Enroll Student`, `Create Fee Structure`, `Create Invoice`, `Record Payment`.
 
-### 2.2 Teacher Dashboard (`/teacher/dashboard`)
-*   **KPIs:** Today's Classes, Pending Grading, This Week's Avg. Attendance (own classes), Next Exam.
-*   **Quick Actions:** Context-aware primary CTA (`Mark Attendance: CS301 (10:00 AM)`), `Create Assignment`, `Enter Grades`.
-*   **Primary Tables:** Today's Timetable (chronological with inline status), Pending Submissions to Grade, My Classes overview.
+### 2.2 Teacher Dashboard (`/teacher`)
+*   **KPIs:** Subjects, assignments, pending submissions, today's attendance (`getTeacherDashboard`).
+*   **Sections:** My classes (`/teacher/classes`), Attendance (`/teacher/attendance`), Assignments (`/teacher/assignments`), Exams (`/teacher/exams`), Timetable (`/teacher/timetable`).
+*   **Quick Actions:** `Mark Attendance`, `Create Assignment`, `Create Exam`, `Grade Submissions`.
 
-### 2.3 Student Dashboard (`/student/dashboard`)
-*   **KPIs:** Attendance %, Pending Assignments, Upcoming Exams, Fee Due (prominent red banner), Current CGPA.
+### 2.3 Student Dashboard (`/student`)
+*   **KPIs:** Attendance %, average %, pending fees (`getStudentDashboard`).
+*   **Sections:** Attendance (`/student/attendance`), Assignments (`/student/assignments`), Grades (`/student/grades`), Timetable (`/student/timetable`), Fees (`/student/fees`). Exams live under assignments (`/student/exams` route, `submitExam`).
 *   **Quick Actions:** `View Timetable`, `Submit Assignment`, `Pay Fees`.
-*   **Primary Tables:** Today's Timetable, Pending Assignments (sorted by urgency), Recently Published Grades, Notice Feed.
 
 ---
 
 ## 3. Core Workflows
 
-### 3.1 Admin: Semester Setup Workflow
-1. **Academic Year & Semester:** Select existing or create new (status: `DRAFT`).
-2. **Class Creation:** Bulk or inline editor. Ties to Department + Semester.
-3. **Subject Mapping:** Attach Subjects to each Class.
-4. **Teacher Allocation:** Assign teachers with workload visibility.
-5. **Timetable Build:** Drag-and-drop grid with server-side clash detection (Teacher, Classroom, Class).
-6. **Publish:** Flips status to `ACTIVE`. Triggers global notice.
+### 3.1 Admin: Class Setup Workflow
+1. **Users:** `createUser` for teachers/students (hashed password, role string).
+2. **Enroll:** `enrollStudent(studentId, classId)`; `unenrollStudent` reverses it.
+3. **Subjects:** `createSubject(name, code, classId)`, then `assignTeacher(subjectId, teacherId)`.
+4. **Timetable:** `createTimetableEntry` (class + subject + teacher + day/time + room string); delete with `deleteTimetableEntry`.
+5. **Fees:** `createFeeStructure` per class, `createFeeInvoice` per student, `recordFeePayment` for offline reconciliation.
 
 ### 3.2 Teacher: Mark Attendance Workflow
-1. **Login:** Redirects to `/teacher/dashboard`.
-2. **Dashboard Query:** Fetches today's `Timetable` slots with single query.
-3. **Action:** Click "Mark Attendance" on current class.
-4. **UI:** Defaults all to **Present**. Toggle exceptions. Bulk "Mark all present" button.
-5. **Submit:** Upserts `Attendance` records via Server Action with unique constraints within a same-day edit window.
+1. **Login:** Redirects to `/teacher`.
+2. **Page:** `/teacher/attendance` (history) → mark form (`/teacher/attendance/mark`).
+3. **UI:** Roster defaults to Present; toggle exceptions.
+4. **Submit:** `bulkMarkAttendance({ classId, subjectId, date, markedById, rows })` — one `attendance.upsert` per row on `[studentId, subjectId, date]`, day normalized to midnight. Re-marking the same day overwrites.
 
-### 3.3 Student: Assignment Submission Workflow
-1. **Login:** Dashboard shows "Pending Assignments".
-2. **Detail Page:** Description, countdown, drag-and-drop upload zone.
-3. **Upload:** Client-side validation → File storage → Server Action creates `Submission` (`status: SUBMITTED`).
-4. **Grading:** Teacher grades → `Grade` created (`status: DRAFT`).
-5. **Publish:** Teacher publishes grades (batch action) → Student sees in "Recent Grades".
+### 3.3 Teacher: Grade Submission Workflow
+1. **Queue:** `getPendingSubmissions` (submissions with `marksObtained: null`).
+2. **Grade:** `gradeSubmission(id, marks, feedback, graderId)` — clamps marks to `[0, maxMarks]`, updates `Submission`, then upserts `Grade` on `[studentId, subjectId]` with letter from percentage.
+3. **Result:** Visible at `/student/grades` immediately. No draft/publish step.
+
+### 3.4 Student: Assignment + Exam Workflow
+1. **Assignments:** `/student/assignments` lists class assignments with submission state.
+2. **Submit:** `submitAssignment(assignmentId, studentId, content)` — upsert on `[assignmentId, studentId]`.
+3. **Exams:** Published exams only (`isPublished`, `getStudentExams`). `submitExam(examId, studentId, answers)` auto-grades against `Question.correctOption`, sums `marks`, upserts `ExamSubmission` with `score`. Returns the score.
+
+### 3.5 Student: Pay Fee Workflow (manual)
+1. **Invoices:** `/student/fees` via `getStudentFees` (invoice + structure + payments).
+2. **Pay:** `payFee(invoiceId, amount, method)` — validates amount, rejects overpayment and already-`PAID` invoices, creates `FeePayment`, flips invoice to `PARTIAL` or `PAID`. No gateway; `method` defaults to `CASH`.
 
 ---
 
 ## 4. Edge Cases & Anti-Patterns to Avoid
 
-1.  **Multi-tenant data leakage:** Inject tenant scoping (e.g., `campusId`) into Prisma queries.
-2.  **Hard deletes on User:** Use `isActive` / `deletedAt` for soft-deletes to preserve historical grades/attendance.
-3.  **Silent Attendance edits:** Corrections must be audited.
-4.  **Grades visible pre-publish:** Use explicit `status: DRAFT/PUBLISHED` gates on Grades.
-5.  **Client-only clash detection:** Enforce overlap checks on the server via transactions.
-6.  **Stale session claims:** Re-verify fresh DB state before high-stakes writes (grade publish, fee payment).
-7.  **Ambiguous "current semester":** Use explicit `status: ACTIVE` flag instead of relying solely on dates.
-8.  **Rewriting history on transfer:** Model student/teacher transfers as new assignments, not overwrites of historical records.
-9.  **N+1 queries:** Precompute heavy aggregates; use `include`/`select` efficiently in Prisma.
-10. **Exam answer leakage:** Use separate query projections for Teachers (with answers) and Students (redacted answers).
-11. **Flat, unscoped Notices:** Explicitly scope notices by `CAMPUS`, `DEPARTMENT`, `CLASS`, or `ROLE`.
+1.  **Cross-class data leakage:** Scope queries by `classId`/`subjectId`/`studentId` from the session, not client input.
+2.  **Hard deletes on User:** Use `toggleUserActive` (`isActive`) to preserve historical grades/attendance.
+3.  **Silent Attendance edits:** Re-marking overwrites via upsert — no audit log exists, so treat marks as mutable.
+4.  **Grades with no publish gate:** `gradeSubmission` writes `Grade` immediately; students see it at once.
+5.  **Client-only validation:** Enforce mark clamping, overpayment rejection, and answer scoring on the server (already in actions).
+6.  **Stale session claims:** Re-verify fresh DB state before high-stakes writes (grading, fee payment).
+7.  **Ambiguous "current" scope:** There is no semester model — scope by enrollment and `isPublished` flags instead of dates.
+8.  **Rewriting history on transfer:** Model transfers as new `Enrollment` rows, not overwrites.
+9.  **N+1 queries:** Precompute aggregates; use `include`/`select` efficiently in Prisma.
+10. **Exam answer leakage:** Never send `Question.correctOption` to students; `submitExam` scores server-side.
