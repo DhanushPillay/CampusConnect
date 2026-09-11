@@ -1,69 +1,77 @@
-import { PageHeader } from "@/components/ui/page-header"
-import { StatCard } from "@/components/ui/stat-card"
-import { Card } from "@/components/ui/card"
-import { getTimetableEntries } from "@/lib/actions/timetable"
-import { getStudentClasses } from "@/lib/actions/student"
-import { getCurrentUser } from "@/lib/auth"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Reveal } from "@/components/motion";
+import { CalendarDays } from "lucide-react";
+import { getStudentTimetable } from "@/lib/actions/student";
+import { getSession } from "@/lib/auth";
 
-const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]
+export const dynamic = "force-dynamic";
 
-export default async function StudentTimetablePage() {
-  const user = await getCurrentUser()
-  const enrollments = user?.id ? await getStudentClasses(user.id) : []
-  const classIds = enrollments.map((e) => e.class.id)
+const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
-  const allEntries: Awaited<ReturnType<typeof getTimetableEntries>> = []
-  for (const classId of classIds) {
-    const entries = await getTimetableEntries({ classId })
-    allEntries.push(...entries)
-  }
+function prettyDay(d: string) {
+  return d.charAt(0) + d.slice(1).toLowerCase();
+}
 
-  const schedule = DAYS.map((day) => ({
-    day,
-    label: day.charAt(0) + day.slice(1).toLowerCase(),
-    entries: allEntries.filter((e) => e.dayOfWeek === day),
-  }))
-
-  const totalClasses = allEntries.length
-  const freeDays = schedule.filter((s) => s.entries.length === 0).length
-
+export default async function StudentTimetable() {
+  const session = await getSession();
+  const rows = await getStudentTimetable(session!.user.id);
   return (
     <div>
-      <PageHeader
-        title="My Timetable."
-        subtitle="Your weekly class schedule."
-      />
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard label="Classes This Week" value={totalClasses} accentColor="primary" />
-        <StatCard label="Free Days" value={freeDays} accentColor="secondary" />
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-extrabold text-ink">Timetable</h1>
+        <p className="mt-1 text-sm text-sub">Your weekly schedule</p>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {schedule.map((day) => (
-          <Card key={day.day} className="p-4">
-            <h3 className="font-display font-bold text-lg uppercase mb-3">{day.label}</h3>
-            {day.entries.length === 0 ? (
-              <p className="font-hand text-lg text-foreground/30">No classes</p>
-            ) : (
-              <div className="space-y-2">
-                {day.entries.map((entry) => (
-                  <div key={entry.id} className="p-2 border border-border/50 bg-surface-warm">
-                    <div className="font-serif font-bold text-sm">{entry.subject.name}</div>
-                    <div className="font-hand text-foreground/60">
-                      {new Date(entry.startTime).getHours()}:00 - {new Date(entry.endTime).getHours()}:00
-                    </div>
-                    <div className="font-hand text-foreground/40">{entry.teacher.name}</div>
-                    {entry.classroom && (
-                      <div className="font-hand text-foreground/40">{entry.classroom.name}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+      {rows.length === 0 ? (
+        <Reveal delay={0.05}>
+          <Card>
+            <CardHeader>
+              <CardTitle>No classes scheduled</CardTitle>
+              <CardDescription>Check back once classes are assigned.</CardDescription>
+            </CardHeader>
           </Card>
-        ))}
-      </div>
+        </Reveal>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-3">
+          {days.map((d, i) => {
+            const list = rows.filter((r) => r.dayOfWeek === d);
+            return (
+              <Reveal key={d} delay={Math.min(i * 0.05, 0.2)}>
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-brand-600" />
+                      <CardTitle>{prettyDay(d)}</CardTitle>
+                    </div>
+                    <CardDescription>
+                      {list.length === 0 ? "No classes" : `${list.length} classes`}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {list.length === 0 ? (
+                      <p className="text-sm text-sub">Free</p>
+                    ) : (
+                      <ul className="space-y-3">
+                        {list.map((r) => (
+                          <li key={r.id} className="flex gap-3">
+                            <div className="w-1 shrink-0 rounded-full bg-brand-600" />
+                            <div className="text-sm">
+                              <p className="text-sub">
+                                {r.startTime}–{r.endTime}
+                              </p>
+                              <p className="font-medium text-ink">{r.subject.name}</p>
+                              <p className="text-sub">{r.teacher.name}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
+              </Reveal>
+            );
+          })}
+        </div>
+      )}
     </div>
-  )
+  );
 }
