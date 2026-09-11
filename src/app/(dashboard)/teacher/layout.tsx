@@ -1,30 +1,21 @@
-import { Sidebar } from "@/components/layouts/sidebar";
-import { TopNav } from "@/components/layouts/top-nav";
-import * as Icons from "lucide-react";
+"use client";
 
-const teacherNavItems: { title: string; href: string; icon: keyof typeof Icons }[] = [
-  { title: "Dashboard", href: "/teacher", icon: "LayoutDashboard" },
-  { title: "My Classes", href: "/teacher/classes", icon: "GraduationCap" },
-  { title: "Attendance", href: "/teacher/attendance", icon: "CheckSquare" },
-  { title: "Assignments", href: "/teacher/assignments", icon: "BookOpen" },
-  { title: "Exams", href: "/teacher/exams", icon: "FileText" },
-  { title: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
+import { LayoutDashboard, BookOpen, ClipboardCheck, FileText, GraduationCap, CalendarDays } from "lucide-react";
+import { Shell } from "@/components/layouts/shell";
+
+const links = [
+  { href: "/teacher", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/teacher/classes", label: "My classes", icon: BookOpen },
+  { href: "/teacher/attendance", label: "Attendance", icon: ClipboardCheck },
+  { href: "/teacher/assignments", label: "Assignments", icon: FileText },
+  { href: "/teacher/exams", label: "Exams", icon: GraduationCap },
+  { href: "/teacher/timetable", label: "Timetable", icon: CalendarDays },
 ];
 
-export default function TeacherLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar items={teacherNavItems} role="Teacher" />
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopNav />
-        <main className="flex-1 p-6 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-    </div>
+    <Shell links={links} section="Teacher">
+      {children}
+    </Shell>
   );
 }
