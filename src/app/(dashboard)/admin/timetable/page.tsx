@@ -1,94 +1,196 @@
-import { PageHeader } from "@/components/ui/page-header"
-import { StatCard } from "@/components/ui/stat-card"
-import { Card } from "@/components/ui/card"
-import { getTimetableEntries } from "@/lib/actions/timetable"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Table, THead, TBody, Tr, Th, Td } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input, FieldLabel } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Reveal } from "@/components/motion";
+import {
+  getTimetable,
+  getClasses,
+  getSubjects,
+  getTeacherUsers,
+  createTimetableEntry,
+  deleteTimetableEntry,
+} from "@/lib/actions/admin";
+import { FormSelect } from "../_components";
 
-const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"]
-const HOURS = Array.from({ length: 8 }, (_, i) => i + 8) // 8AM to 3PM
+export const dynamic = "force-dynamic";
 
-const dayColors: Record<string, string> = {
-  MONDAY: "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20 text-blue-900",
-  TUESDAY: "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-900",
-  WEDNESDAY: "bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 text-purple-900",
-  THURSDAY: "bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20 text-amber-900",
-  FRIDAY: "bg-pink-500/10 border-pink-500/20 hover:bg-pink-500/20 text-pink-900",
-  SATURDAY: "bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-900",
-}
+const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
-export default async function TimetablePage() {
-  const entries = await getTimetableEntries()
-
-  const grid: Record<string, Record<number, typeof entries[0]>> = {}
-  for (const day of DAYS) {
-    grid[day] = {}
-    for (const hour of HOURS) {
-      const entry = entries.find((e) => {
-        if (e.dayOfWeek !== day) return false
-        const startHour = new Date(e.startTime).getHours()
-        return startHour === hour
-      })
-      if (entry) grid[day][hour] = entry
-    }
-  }
-
+export default async function AdminTimetable() {
+  const [rows, classes, subjects, teachers] = await Promise.all([
+    getTimetable(),
+    getClasses(),
+    getSubjects(),
+    getTeacherUsers(),
+  ]);
   return (
     <div>
-      <PageHeader
-        title="Timetable."
-        subtitle="Weekly class schedule across all classes."
-      />
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard label="Total Entries" value={entries.length} accentColor="primary" />
-        <StatCard label="Classes Scheduled" value={new Set(entries.map((e) => e.classId)).size} accentColor="secondary" />
-      </div>
-
-      <Card className="overflow-hidden bg-white/60 backdrop-blur-xl border-border/40 shadow-xl shadow-primary/5 rounded-3xl p-2">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border/40">
-                <th className="px-6 py-4 font-display text-xs font-bold text-muted-foreground uppercase tracking-wider w-24">Time</th>
-                {DAYS.map((day) => (
-                  <th key={day} className="px-6 py-4 font-display text-xs font-bold text-muted-foreground uppercase tracking-wider min-w-[180px]">
-                    {day.charAt(0) + day.slice(1).toLowerCase()}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {HOURS.map((hour) => (
-                <tr key={hour} className="border-b border-border/20 last:border-0 hover:bg-white/40 transition-colors">
-                  <td className="px-6 py-4 font-display font-medium text-muted-foreground">
-                    {String(hour).padStart(2, "0")}:00
-                  </td>
-                  {DAYS.map((day) => {
-                    const entry = grid[day][hour]
-                    return (
-                      <td key={day} className="p-2">
-                        {entry ? (
-                          <div className={`p-4 rounded-2xl border transition-all duration-300 cursor-default ${dayColors[day]}`}>
-                            <div className="font-display font-bold text-sm mb-1">{entry.subject.name}</div>
-                            <div className="text-xs opacity-80 font-medium">{entry.teacher.name}</div>
-                            <div className="text-xs opacity-60 mt-2 flex items-center justify-between">
-                              <span>{entry.class.name} {entry.class.section}</span>
-                              {entry.classroom && (
-                                <span className="px-2 py-0.5 rounded-full bg-black/5">{entry.classroom.name}</span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center p-4 text-muted-foreground/20 text-sm">—</div>
-                        )}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-extrabold text-ink">Timetable</h1>
+          <p className="mt-1 text-sm text-sub">Weekly schedule across classes</p>
         </div>
-      </Card>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button size="sm">New entry</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogTitle>Add timetable entry</DialogTitle>
+            <DialogDescription>One slot in the weekly schedule.</DialogDescription>
+            <form
+              className="mt-4 space-y-3"
+              action={async (formData: FormData) => {
+                "use server";
+                await createTimetableEntry(
+                  String(formData.get("dayOfWeek")),
+                  String(formData.get("startTime")),
+                  String(formData.get("endTime")),
+                  String(formData.get("classId")),
+                  String(formData.get("subjectId")),
+                  String(formData.get("teacherId")),
+                  String(formData.get("room") ?? "")
+                );
+              }}
+            >
+              <div>
+                <FieldLabel>Day</FieldLabel>
+                <FormSelect
+                  name="dayOfWeek"
+                  placeholder="Select day"
+                  options={DAYS.map((d) => ({ value: d, label: d }))}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>Start</FieldLabel>
+                  <Input name="startTime" type="time" required />
+                </div>
+                <div>
+                  <FieldLabel>End</FieldLabel>
+                  <Input name="endTime" type="time" required />
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Class</FieldLabel>
+                <FormSelect
+                  name="classId"
+                  placeholder="Select class"
+                  options={classes.map((c) => ({
+                    value: c.id,
+                    label: `${c.name}${c.section ? ` · Sec ${c.section}` : ""}`,
+                  }))}
+                />
+              </div>
+              <div>
+                <FieldLabel>Subject</FieldLabel>
+                <FormSelect
+                  name="subjectId"
+                  placeholder="Select subject"
+                  options={subjects.map((s) => ({
+                    value: s.id,
+                    label: `${s.name} (${s.code})`,
+                  }))}
+                />
+              </div>
+              <div>
+                <FieldLabel>Teacher</FieldLabel>
+                <FormSelect
+                  name="teacherId"
+                  placeholder="Select teacher"
+                  options={teachers.map((t) => ({ value: t.id, label: t.name }))}
+                />
+              </div>
+              <div>
+                <FieldLabel>Room (optional)</FieldLabel>
+                <Input name="room" placeholder="Room 204" />
+              </div>
+              <Button type="submit" className="w-full">
+                Add entry
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+      {rows.length === 0 ? (
+        <Reveal>
+          <Card>
+            <CardContent>
+              <p className="font-display font-bold text-ink">No timetable entries</p>
+              <p className="mt-1 text-sm text-sub">Add the first slot to build the schedule.</p>
+            </CardContent>
+          </Card>
+        </Reveal>
+      ) : (
+        <Reveal delay={0.05}>
+          <Card>
+            <CardHeader>
+              <div>
+                <CardTitle>Weekly schedule</CardTitle>
+                <CardDescription>All classes, subjects, and rooms</CardDescription>
+              </div>
+              <Badge variant="brand">{rows.length} slots</Badge>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <Table>
+                <THead>
+                  <Tr>
+                    <Th>Day</Th>
+                    <Th>Time</Th>
+                    <Th>Class</Th>
+                    <Th>Subject</Th>
+                    <Th>Teacher</Th>
+                    <Th>Room</Th>
+                    <Th>Action</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {rows.map((r) => (
+                    <Tr key={r.id}>
+                      <Td>
+                        <Badge variant="brand">{r.dayOfWeek}</Badge>
+                      </Td>
+                      <Td className="text-sub">
+                        {r.startTime}–{r.endTime}
+                      </Td>
+                      <Td className="font-medium">{r.class.name}</Td>
+                      <Td>{r.subject.name}</Td>
+                      <Td className="text-sub">{r.teacher.name}</Td>
+                      <Td className="text-sub">{r.room ?? "—"}</Td>
+                      <Td>
+                        <form
+                          action={async () => {
+                            "use server";
+                            await deleteTimetableEntry(r.id);
+                          }}
+                        >
+                          <Button variant="ghost" size="sm" type="submit">
+                            Delete
+                          </Button>
+                        </form>
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </Reveal>
+      )}
     </div>
-  )
+  );
 }
