@@ -11,7 +11,8 @@ Clean light product UI in white + lavender-gray, deep purple primary, magenta re
 - Text: `ink #1E1B26`, `sub #655E76`.
 - Brand scale: 50 `#F5F0FA`, 100 `#E9DDF5`, 200 `#D3BCEA`, 500 `#7C3FB0`, 600 `#5E2D91`, 700 `#4A2373`.
 - Accents: `magenta #C13584` (gradients only), `ember #F26522` (CTAs sparingly), emerald/amber/red-50 tints for status.
-- Banned: any hex color in class names (use tokens), paper/beige backgrounds, black sidebar, gold, mono uppercase eyebrow labels on everything, `shadow-subtle`.
+- Banned: any hex color in class names (use tokens), paper/beige backgrounds, black sidebar, gold, mono uppercase eyebrow labels on everything.
+- Note: `boxShadow.subtle` still exists in `tailwind.config.ts` as a legacy token. Prefer `shadow-card` / `shadow-pop`; do not add new `shadow-subtle` uses.
 
 ## 3. Typography
 - Display: Plus Jakarta Sans Extrabold (`font-display`) — hero + page titles + stat values.
@@ -30,5 +31,9 @@ Clean light product UI in white + lavender-gray, deep purple primary, magenta re
 - Status always via `StatusBadge`/`Badge`. Buttons via `Button`, inputs via `Input`, tables via `Table` primitives.
 
 ## 6. Motion
-- Route changes: `PageTransition` (AnimatePresence `mode="wait"`, pathname key, 220ms fade+rise) mounted once in `(dashboard)/template.tsx`.
-- Entrances: `Reveal` with small stagger delays. `MotionConfig reducedMotion="user"` globally. No layout animations on tables, no spinners without skeletons.
+- Route changes: `PageTransition` (AnimatePresence `mode="sync"`, pathname key, 180ms fade+rise) mounted inside `Shell` (`src/components/layouts/shell.tsx`) around `main` only.
+- Entrances: `Reveal` with small stagger delays. `MotionConfig reducedMotion="user"` in `src/components/providers.tsx`. No layout animations on tables, no spinners without skeletons.
+
+## 7. Brand + loading inventory
+- Crest: `public/mit-adt-crest.png` (sidebar, `rounded-full`). Favicon: `src/app/icon.png`.
+- Loading: `CardsSkeleton` (`src/components/ui/skeleton.tsx`) + `(dashboard)/loading.tsx` (title lines + cards + table skeleton).
