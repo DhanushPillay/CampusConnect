@@ -1,31 +1,27 @@
-import { PageHeader } from "@/components/ui/page-header"
-import { StatCard } from "@/components/ui/stat-card"
-import { TeacherAssignmentsClient } from "./client"
-import { getAssignments } from "@/lib/actions/assignments"
-import { getCurrentUser } from "@/lib/auth"
+import { Reveal } from "@/components/motion";
+import { AssignmentsClient } from "./client";
+import { getTeacherAssignments, getPendingSubmissions, getTeacherSubjects } from "@/lib/actions/teacher";
+import { getSession } from "@/lib/auth";
 
-export default async function TeacherAssignmentsPage() {
-  const user = await getCurrentUser()
-  const assignments = user?.id ? await getAssignments({ teacherId: user.id }) : []
-  const totalSubmissions = assignments.reduce((s: number, a) => s + a._count.submissions, 0)
-  const pendingGrading = assignments.filter(
-    (a) => a.submissions && a.submissions.some((s: any) => !s.marksObtained)
-  ).length
+export const dynamic = "force-dynamic";
 
+export default async function TeacherAssignments() {
+  const session = await getSession();
+  const teacherId = session!.user.id;
+  const [assignments, pending, subjects] = await Promise.all([
+    getTeacherAssignments(teacherId),
+    getPendingSubmissions(teacherId),
+    getTeacherSubjects(teacherId),
+  ]);
   return (
     <div>
-      <PageHeader
-        title="Assignments."
-        subtitle="Create and manage student assignments."
-      />
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard label="Total Assignments" value={assignments.length} accentColor="primary" />
-        <StatCard label="Submissions" value={totalSubmissions} accentColor="secondary" />
-        <StatCard label="Pending Review" value={pendingGrading} accentColor={pendingGrading > 0 ? "accent" : "primary"} />
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-extrabold text-ink">Assignments</h1>
+        <p className="mt-1 text-sm text-sub">Create, collect, grade</p>
       </div>
-
-      <TeacherAssignmentsClient assignments={assignments} />
+      <Reveal delay={0.05}>
+        <AssignmentsClient assignments={assignments} pending={pending} subjects={subjects} teacherId={teacherId} />
+      </Reveal>
     </div>
-  )
+  );
 }
