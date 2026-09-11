@@ -1,78 +1,86 @@
-import { PageHeader } from "@/components/ui/page-header"
-import { StatCard } from "@/components/ui/stat-card"
-import { Card } from "@/components/ui/card"
-import { getStudentAttendanceSummary, getAttendanceRecords } from "@/lib/actions/attendance"
-import { getCurrentUser } from "@/lib/auth"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Table, THead, TBody, Tr, Th, Td } from "@/components/ui/table";
+import { Badge, StatusBadge } from "@/components/ui/badge";
+import { Reveal } from "@/components/motion";
+import { ClipboardCheck } from "lucide-react";
+import { getStudentAttendance } from "@/lib/actions/student";
+import { getSession } from "@/lib/auth";
+import { formatDate } from "@/lib/utils";
 
-export default async function StudentAttendancePage() {
-  const user = await getCurrentUser()
-  const summary = user?.id ? await getStudentAttendanceSummary(user.id) : []
-  const records = user?.id
-    ? await getAttendanceRecords({ studentId: user.id })
-    : []
+export const dynamic = "force-dynamic";
 
-  const overallTotal = summary.reduce((s: number, r) => s + r.total, 0)
-  const overallPresent = summary.reduce((s: number, r) => s + r.present, 0)
-  const overallPercentage = overallTotal > 0 ? Math.round((overallPresent / overallTotal) * 100) : 0
-  const belowTarget = summary.filter((r) => r.percentage < 75).length
-
+export default async function StudentAttendance() {
+  const session = await getSession();
+  const { records, perSubject } = await getStudentAttendance(session!.user.id);
   return (
     <div>
-      <PageHeader
-        title="My Attendance."
-        subtitle="Track your attendance across all subjects."
-      />
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard label="Overall Attendance" value={`${overallPercentage}%`} accentColor={overallPercentage >= 75 ? "primary" : "destructive"} />
-        <StatCard label="Total Classes" value={overallTotal} accentColor="secondary" />
-        <StatCard label="Present" value={overallPresent} accentColor="primary" />
-        <StatCard label="Below 75%" value={belowTarget} accentColor={belowTarget > 0 ? "destructive" : "primary"} />
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-extrabold text-ink">My attendance</h1>
+        <p className="mt-1 text-sm text-sub">Below 75% is flagged</p>
       </div>
-
-      <h2 className="font-display font-bold text-xl uppercase mb-4">By Subject</h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        {summary.map((s) => (
-          <Card key={s.subjectId} className="p-5">
-            <h3 className="font-serif font-bold text-lg">{s.subjectName}</h3>
-            <div className="mt-3">
-              <div className="flex justify-between font-hand text-lg mb-1">
-                <span className="text-foreground/60">{s.present}/{s.total} classes</span>
-                <span className={s.percentage >= 75 ? "text-secondary" : "text-destructive"}>
-                  {s.percentage}%
-                </span>
-              </div>
-              <div className="h-2 bg-muted/30 w-full">
-                <div
-                  className={`h-full ${s.percentage >= 75 ? "bg-secondary" : "bg-destructive"}`}
-                  style={{ width: `${Math.min(s.percentage, 100)}%` }}
-                />
-              </div>
-            </div>
-          </Card>
+      <div className="grid gap-4 md:grid-cols-3">
+        {perSubject.map((s, i) => (
+          <Reveal key={s.code} delay={i * 0.05}>
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle>{s.name}</CardTitle>
+                  <CardDescription>{s.code}</CardDescription>
+                </div>
+                {s.pct < 75 ? (
+                  <Badge variant="warning">Below 75%</Badge>
+                ) : (
+                  <Badge variant="success">{s.pct}%</Badge>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck className="h-4 w-4 text-brand-600" />
+                  <p className="font-display text-2xl font-extrabold text-ink">{s.pct}%</p>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand-100">
+                  <div className="h-full rounded-full bg-brand-600" style={{ width: `${s.pct}%` }} />
+                </div>
+                <p className="mt-2 text-sm text-sub">
+                  {s.present}/{s.total} present
+                </p>
+              </CardContent>
+            </Card>
+          </Reveal>
         ))}
       </div>
-
-      <h2 className="font-display font-bold text-xl uppercase mb-4">Recent Records</h2>
-      <div className="space-y-2">
-        {records.slice(0, 10).map((record) => (
-          <Card key={record.id} className="p-4 flex items-center justify-between">
+      <Reveal delay={0.15}>
+        <Card className="mt-4">
+          <CardHeader>
             <div>
-              <span className="font-serif font-bold">{record.subject.name}</span>
-              <span className="font-hand text-foreground/40 ml-4">
-                {new Date(record.date).toLocaleDateString("en-IN")}
-              </span>
+              <CardTitle>Recent records</CardTitle>
+              <CardDescription>Latest attendance entries</CardDescription>
             </div>
-            <span className={`font-hand text-lg ${
-              record.status === "PRESENT" ? "text-secondary" :
-              record.status === "LATE" ? "text-primary" :
-              "text-destructive"
-            }`}>
-              {record.status}
-            </span>
-          </Card>
-        ))}
-      </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <THead>
+                <Tr>
+                  <Th>Date</Th>
+                  <Th>Subject</Th>
+                  <Th>Status</Th>
+                </Tr>
+              </THead>
+              <TBody>
+                {records.slice(0, 25).map((r) => (
+                  <Tr key={r.id}>
+                    <Td className="text-sm text-sub">{formatDate(r.date)}</Td>
+                    <Td className="text-sm font-medium">{r.subject.name}</Td>
+                    <Td>
+                      <StatusBadge status={r.status} />
+                    </Td>
+                  </Tr>
+                ))}
+              </TBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </Reveal>
     </div>
-  )
+  );
 }
