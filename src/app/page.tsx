@@ -1,152 +1,120 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Shield, GraduationCap, Users, Settings } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import Image from "next/image";
+import {
+  ArrowRight,
+  Award,
+  CalendarDays,
+  ClipboardCheck,
+  FileText,
+  GraduationCap,
+  Wallet,
+} from "lucide-react";
+import { Reveal } from "@/components/motion";
+
+const modules = [
+  { k: "Attendance", v: "Your presence, counted every day.", icon: ClipboardCheck },
+  { k: "Grades", v: "Marks out? You'll know first.", icon: Award },
+  { k: "Timetable", v: "Your week, mapped at a glance.", icon: CalendarDays },
+  { k: "Assignments", v: "Deadlines you'll never miss.", icon: FileText },
+  { k: "Exams", v: "Practice, perform, see your score.", icon: GraduationCap },
+  { k: "Fees", v: "Dues clear before they worry you.", icon: Wallet },
+];
+
+const stats = [
+  { v: "95+", l: "Startups incubated" },
+  { v: "61+ LPA", l: "Highest package" },
+  { v: "1200+", l: "Job offers" },
+  { v: "500+", l: "Major recruiters" },
+];
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground relative flex flex-col font-sans overflow-x-hidden">
-      
-      {/* Navbar */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-border/40 bg-white/80 backdrop-blur-md">
+    <div className="flex min-h-screen flex-col bg-white text-ink">
+      <header className="flex items-center justify-between border-b border-border/70 px-6 py-4 lg:px-12">
         <div className="flex items-center gap-3">
-          <GraduationCap className="h-8 w-8 text-primary" />
-          <span className="font-display font-black text-2xl tracking-tighter uppercase">CampusConnect</span>
+          <Image
+            src="/mit-adt-crest.png"
+            alt="MIT-ADT University crest"
+            width={40}
+            height={40}
+            className="h-10 w-10 rounded-full"
+          />
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-sub">
+              MIT-ADT University · Pune
+            </p>
+            <p className="font-display text-xl font-extrabold leading-none">CampusConnect</p>
+          </div>
         </div>
-        <div>
-          <Link href="/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-            Login
-          </Link>
-        </div>
+        <Link
+          href="/login"
+          className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-all hover:bg-brand-700 active:scale-[0.98]"
+        >
+          Login
+        </Link>
       </header>
 
-      <main className="flex-1 relative z-10 flex flex-col">
-        {/* Split Hero Section */}
-        <div className="flex flex-col lg:flex-row border-b border-border/40 bg-white">
-          
-          {/* LEFT: Photography & Text (65%) */}
-          <div className="lg:w-[65%] relative flex flex-col justify-end border-b lg:border-b-0 lg:border-r border-border/40 bg-slate-50 min-h-[50vh] overflow-hidden">
-            {/* Real photography background - Vibrant */}
-            <div 
-              className="absolute inset-0 bg-cover bg-center opacity-80"
-              style={{ backgroundImage: "url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop')" }}
-            />
-            {/* Elegant gradient overlays for text readability without destroying image color */}
-            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent" />
-            
-            <div className="relative z-10 p-6 lg:p-16 pt-32">
-              <motion.h1 
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="font-display font-black text-[12vw] lg:text-[9vw] leading-[0.85] tracking-tighter uppercase text-foreground"
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 lg:px-12">
+        <Reveal>
+          <section className="hero-gradient hero-grid relative mt-8 overflow-hidden rounded-2xl px-7 py-14 lg:px-14 lg:py-20">
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/70">
+              Rajbaug, Pune · Academic Year 2025–26
+            </p>
+            <h1 className="mt-4 max-w-2xl font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-white lg:text-6xl">
+              Your campus, connected.
+            </h1>
+            <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-white/80">
+              Attendance as it happens. Marks the moment they&apos;re out. Deadlines and
+              dues before they sneak up on you.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-brand-700 shadow-pop transition-all hover:bg-brand-50 active:scale-[0.98]"
               >
-                UNIFY<br />
-                YOUR<br />
-                <span className="text-primary">CAMPUS.</span>
-              </motion.h1>
+                Sign in <ArrowRight className="h-4 w-4" />
+              </Link>
+              <span className="inline-flex items-center rounded-lg border border-white/25 px-4 py-3 text-xs font-semibold uppercase tracking-widest text-white/85">
+                Attendance · Grades · Fees
+              </span>
             </div>
-          </div>
+          </section>
+        </Reveal>
 
-          {/* RIGHT: CTA Column (35%) */}
-          <div className="lg:w-[35%] flex flex-col bg-white">
-            <div className="p-8 lg:p-12 flex-1 flex flex-col justify-center">
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-lg text-muted-foreground leading-relaxed mb-12 font-medium"
+        <Reveal delay={0.08}>
+          <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {stats.map((s) => (
+              <div
+                key={s.l}
+                className="rounded-xl border border-border/70 bg-surface px-5 py-4"
               >
-                A sophisticated, modern ecosystem engineered to connect administrators, teachers, and students without friction. 
-                <span className="text-foreground font-semibold block mt-4 text-xl">Brilliantly simple.</span>
-              </motion.p>
-              
-              <motion.div
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.3 }}
-              >
-                <Link
-                  href="/login"
-                  className="group relative flex items-center justify-between w-full px-6 py-6 bg-primary text-primary-foreground rounded-2xl font-display font-bold text-xl uppercase tracking-widest hover:bg-primary/90 transition-all shadow-glow hover:shadow-lg hover:-translate-y-1"
-                >
-                  <span>Initialize</span>
-                  <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-
-        {/* Feature Grid */}
-        <div className="p-6 lg:p-16 grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-8 bg-background">
-          
-          {/* BENTO 1: Admin */}
-          <div className="md:col-span-2 md:row-span-2">
-            <Card className="h-full flex flex-col justify-between group overflow-hidden bg-white border-border/40 p-8 relative">
-              <div className="absolute -top-10 -right-10 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Shield className="w-64 h-64 text-primary" />
-              </div>
-              <div className="relative z-10">
-                <div className="text-sm font-bold text-primary mb-4 uppercase tracking-widest">Module 01</div>
-                <h3 className="font-display font-black text-5xl lg:text-6xl uppercase mb-4 w-3/4 text-foreground">Total Control.</h3>
-              </div>
-              <p className="text-muted-foreground text-lg max-w-sm mt-12 leading-relaxed relative z-10">
-                Command campus operations, orchestrate user roles, and monitor analytics with absolute precision.
-              </p>
-            </Card>
-          </div>
-
-          {/* BENTO 2: Teachers */}
-          <div className="md:col-span-2">
-            <Card className="h-full flex items-center justify-between group bg-emerald-50 border-emerald-100 p-8 relative overflow-hidden">
-              <div className="relative z-10">
-                <div className="text-sm font-bold text-emerald-800/60 mb-2 uppercase tracking-widest">Module 02</div>
-                <h3 className="font-display font-black text-4xl uppercase text-emerald-950">Educators</h3>
-                <p className="text-emerald-900/80 text-base mt-2 max-w-xs font-medium">
-                  Frictionless grading, attendance, and assignment workflows.
+                <p className="font-display text-2xl font-extrabold text-brand-600 lg:text-3xl">
+                  {s.v}
                 </p>
+                <p className="mt-0.5 text-[13px] text-sub">{s.l}</p>
               </div>
-              <GraduationCap className="w-24 h-24 text-emerald-600 opacity-20 relative z-10" />
-            </Card>
-          </div>
+            ))}
+          </section>
+        </Reveal>
 
-          {/* BENTO 3: Students */}
-          <div>
-            <Card className="h-full flex flex-col justify-between group bg-white border-border/40 p-8">
-              <Users className="w-10 h-10 text-primary mb-4" />
-              <div className="relative z-10">
-                <h3 className="font-display font-bold text-2xl uppercase text-foreground">Students</h3>
-                <p className="text-sm text-muted-foreground font-medium mt-2">
-                  Unified data access.
-                </p>
+        <section className="mt-10 grid grid-cols-1 gap-4 pb-16 md:grid-cols-3">
+          {modules.map((m, i) => (
+            <Reveal key={m.k} delay={0.05 * i}>
+              <div className="group rounded-xl border border-border/70 bg-white p-5 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-pop">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-600 group-hover:text-white">
+                  <m.icon className="h-5 w-5" />
+                </div>
+                <p className="mt-3 font-display text-[16px] font-bold">{m.k}</p>
+                <p className="mt-1 text-sm text-sub">{m.v}</p>
               </div>
-            </Card>
-          </div>
-
-          {/* BENTO 4: Customization */}
-          <div>
-            <Card className="h-full flex flex-col justify-center items-center text-center group bg-primary/5 border-primary/20 p-8">
-              <Settings className="w-8 h-8 text-primary mb-3" />
-              <div className="font-display font-bold text-xl mb-1 text-foreground uppercase">Fully Bespoke</div>
-              <div className="text-sm text-muted-foreground font-medium mt-1">Tailored for you</div>
-            </Card>
-          </div>
-
-        </div>
+            </Reveal>
+          ))}
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/40 p-6 flex justify-between items-center bg-white text-sm font-medium text-muted-foreground">
-        <div>
-          &copy; {new Date().getFullYear()} CampusConnect
-        </div>
-        <div className="flex gap-4">
-          <span>Est. 2026</span>
-        </div>
+      <footer className="flex items-center justify-between border-t border-border/70 px-6 py-5 text-xs font-medium text-sub lg:px-12">
+        <span>MIT-ADT CampusConnect</span>
+        <span>NAAC &apos;A&apos; · Single campus · V1</span>
       </footer>
     </div>
   );
