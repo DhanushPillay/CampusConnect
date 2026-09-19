@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Table, THead, TBody, Tr, Th, Td } from "@/components/ui/table";
-import { StatusBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input, FieldLabel } from "@/components/ui/input";
-import { Reveal } from "@/components/motion";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { Table, THead, TBody, Tr, Th, Td } from "@/shared/ui/table";
+import { StatusBadge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Input, FieldLabel } from "@/shared/ui/input";
+import { Reveal } from "@/shared/motion";
 import { ClipboardCheck, CalendarDays } from "lucide-react";
-import { getAttendanceHistory, getTeacherSubjects } from "@/lib/actions/teacher";
+
 import { getSession } from "@/lib/auth";
+import { getAttendanceHistory } from "@/features/attendance/actions";
+import { getTeacherSubjects } from "@/features/classes/actions";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
