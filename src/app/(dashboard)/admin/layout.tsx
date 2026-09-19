@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutDashboard, Users, School, BookOpen, CalendarDays, Wallet } from "lucide-react";
-import { Shell } from "@/components/layouts/shell";
+import { Shell } from "@/shared/layouts/shell";
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
