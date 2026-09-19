@@ -1,11 +1,13 @@
 "use client";
 
+import { payFee } from "@/features/fees/actions";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { payFee } from "@/lib/actions/student";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/shared/ui/dialog";
+
 import { formatINR } from "@/lib/utils";
 
 export function PayFeeDialog({
