@@ -81,13 +81,13 @@ function Sidebar({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-sub hover:bg-surface lg:hidden">
+          <button aria-label="Close menu" onClick={onClose} className="rounded-md p-1 text-sub hover:bg-surface lg:hidden">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        <nav aria-label="Primary" className="flex-1 space-y-1 overflow-y-auto p-3">
           {links.map((l) => {
-            const active = pathname === l.href;
+            const active = pathname === l.href || pathname.startsWith(l.href + "/");
             const Icon = l.icon;
             return (
               <Link
@@ -126,6 +126,7 @@ function Sidebar({
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             title="Sign out"
+            aria-label="Sign out"
             className="rounded-lg p-2 text-sub transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <LogOut className="h-4 w-4" />
@@ -144,11 +145,11 @@ function TopNav({ section, onMenu }: { section: string; onMenu: () => void }) {
   return (
     <header className="sticky top-0 z-20 border-b border-border/70 bg-white/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-5 py-3.5 lg:px-8">
-        <button onClick={onMenu} className="rounded-lg p-2 text-sub hover:bg-surface lg:hidden">
+        <button aria-label="Open menu" onClick={onMenu} className="rounded-lg p-2 text-sub hover:bg-surface lg:hidden">
           <Menu className="h-5 w-5" />
         </button>
         <p className="text-sm text-sub">
-          {section} <span className="mx-1.5 text-border">/</span>{" "}
+          {section} <span className="mx-1.5 text-sub/40">/</span>{" "}
           <span className="font-semibold capitalize text-ink">{crumb}</span>
         </p>
         <div className="ml-auto flex items-center gap-2.5">
