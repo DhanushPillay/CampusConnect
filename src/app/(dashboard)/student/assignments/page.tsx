@@ -1,7 +1,8 @@
-import { Reveal } from "@/components/motion";
+import { Reveal } from "@/shared/motion";
 import { StudentAssignmentsClient } from "./client";
-import { getStudentAssignments } from "@/lib/actions/student";
+
 import { getSession } from "@/lib/auth";
+import { getStudentAssignments } from "@/features/assignments/actions";
 
 export const dynamic = "force-dynamic";
 
