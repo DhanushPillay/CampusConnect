@@ -1,14 +1,16 @@
 "use client";
 
+import { bulkMarkAttendance } from "@/features/attendance/actions";
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { bulkMarkAttendance } from "@/lib/actions/teacher";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input, FieldLabel } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Reveal } from "@/components/motion";
+
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { Button } from "@/shared/ui/button";
+import { Input, FieldLabel } from "@/shared/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/shared/ui/select";
+import { Badge } from "@/shared/ui/badge";
+import { Reveal } from "@/shared/motion";
 import { ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
