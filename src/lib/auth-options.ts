@@ -14,9 +14,9 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) throw new Error("Invalid credentials");
         const user = await prisma.user.findUnique({ where: { email: credentials.email } });
-        if (!user || !user.isActive) throw new Error("User not found or inactive");
+        if (!user || !user.isActive) throw new Error("Invalid credentials");
         const ok = await bcrypt.compare(credentials.password, user.password);
-        if (!ok) throw new Error("Invalid password");
+        if (!ok) throw new Error("Invalid credentials");
         return { id: user.id, email: user.email, name: user.name, role: user.role };
       },
     }),
