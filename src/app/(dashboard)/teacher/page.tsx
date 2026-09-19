@@ -1,9 +1,12 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/badge";
-import { Reveal } from "@/components/motion";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { StatusBadge } from "@/shared/ui/badge";
+import { Reveal } from "@/shared/motion";
 import { BookOpen, FileText, ClipboardCheck, CalendarDays } from "lucide-react";
-import { getTeacherDashboard, getPendingSubmissions, getTeacherSubjects } from "@/lib/actions/teacher";
+
 import { getSession } from "@/lib/auth";
+import { getTeacherDashboard } from "@/features/overview/actions";
+import { getPendingSubmissions } from "@/features/assignments/actions";
+import { getTeacherSubjects } from "@/features/classes/actions";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
