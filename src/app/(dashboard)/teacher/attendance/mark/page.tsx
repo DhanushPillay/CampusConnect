@@ -1,8 +1,8 @@
-import { Reveal } from "@/components/motion";
+import { Reveal } from "@/shared/motion";
 import MarkClient from "./client";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { getTeacherSubjects } from "@/lib/actions/teacher";
+import { getTeacherSubjects } from "@/features/classes/actions";
 
 export const dynamic = "force-dynamic";
 
