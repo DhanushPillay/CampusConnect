@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Reveal } from "@/components/motion";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Reveal } from "@/shared/motion";
 import { BookOpen, Users } from "lucide-react";
-import { getTeacherSubjects } from "@/lib/actions/teacher";
+
 import { getSession } from "@/lib/auth";
+import { getTeacherSubjects } from "@/features/classes/actions";
 
 export const dynamic = "force-dynamic";
 
