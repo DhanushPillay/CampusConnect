@@ -1,7 +1,9 @@
-import { Reveal } from "@/components/motion";
+import { Reveal } from "@/shared/motion";
 import { ExamsClient } from "../assignments/client";
-import { getTeacherExams, getTeacherSubjects } from "@/lib/actions/teacher";
+
 import { getSession } from "@/lib/auth";
+import { getTeacherExams } from "@/features/exams/actions";
+import { getTeacherSubjects } from "@/features/classes/actions";
 
 export const dynamic = "force-dynamic";
 
