@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Reveal } from "@/components/motion";
+import { Card, CardContent } from "@/shared/ui/card";
+import { Reveal } from "@/shared/motion";
 import { ClipboardCheck, Award, GraduationCap, Wallet } from "lucide-react";
-import { getStudentDashboard } from "@/lib/actions/student";
+
 import { getSession } from "@/lib/auth";
+import { getStudentDashboard } from "@/features/overview/actions";
 import { formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
