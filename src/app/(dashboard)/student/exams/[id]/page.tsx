@@ -1,6 +1,6 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Reveal } from "@/components/motion";
+import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
+import { Badge } from "@/shared/ui/badge";
+import { Reveal } from "@/shared/motion";
 import { TakeExamClient } from "../../assignments/client";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -13,7 +13,7 @@ export default async function TakeExam({ params }: { params: { id: string } }) {
     getSession(),
     prisma.exam.findUnique({
       where: { id: params.id },
-      include: { questions: true, subject: true },
+      include: { subject: true, questions: { select: { id: true, questionText: true, options: true } } },
     }),
   ]);
   const studentId = session!.user.id;
