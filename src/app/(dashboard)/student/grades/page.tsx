@@ -1,10 +1,11 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Table, THead, TBody, Tr, Th, Td } from "@/components/ui/table";
-import { StatusBadge } from "@/components/ui/badge";
-import { Reveal } from "@/components/motion";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { Table, THead, TBody, Tr, Th, Td } from "@/shared/ui/table";
+import { StatusBadge } from "@/shared/ui/badge";
+import { Reveal } from "@/shared/motion";
 import { Award, ClipboardCheck } from "lucide-react";
-import { getStudentGrades } from "@/lib/actions/student";
+
 import { getSession } from "@/lib/auth";
+import { getStudentGrades } from "@/features/assignments/actions";
 
 export const dynamic = "force-dynamic";
 
