@@ -1,26 +1,20 @@
 "use client";
 
+import { createAssignment, gradeSubmission } from "@/features/assignments/actions";
+import { createExam, addQuestion, updateQuestion, deleteQuestion, publishExam, getExamAttempts } from "@/features/exams/actions";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  createAssignment,
-  gradeSubmission,
-  createExam,
-  addQuestion,
-  updateQuestion,
-  deleteQuestion,
-  publishExam,
-  getExamAttempts,
-} from "@/lib/actions/teacher";
+
 import { formatDate } from "@/lib/utils";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge, StatusBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input, FieldLabel } from "@/components/ui/input";
-import { Table, THead, TBody, Tr, Th, Td } from "@/components/ui/table";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Reveal } from "@/components/motion";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { Badge, StatusBadge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Input, FieldLabel } from "@/shared/ui/input";
+import { Table, THead, TBody, Tr, Th, Td } from "@/shared/ui/table";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/shared/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/shared/ui/select";
+import { Reveal } from "@/shared/motion";
 import { FileText, ClipboardCheck, GraduationCap, Plus } from "lucide-react";
 
 function SubjectPicker({
