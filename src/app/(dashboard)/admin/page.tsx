@@ -1,6 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Reveal } from "@/components/motion";
-import { getAdminStats } from "@/lib/actions/admin";
+import { getAdminStats } from "@/features/overview/actions";
+import { Card, CardContent } from "@/shared/ui/card";
+import { Reveal } from "@/shared/motion";
+
 import { formatINR } from "@/lib/utils";
 import { Users, School, BookOpen, Wallet } from "lucide-react";
 
