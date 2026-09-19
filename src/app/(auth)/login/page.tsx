@@ -5,9 +5,9 @@ import Image from "next/image";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input, FieldLabel } from "@/components/ui/input";
-import { Reveal } from "@/components/motion";
+import { Button } from "@/shared/ui/button";
+import { Input, FieldLabel } from "@/shared/ui/input";
+import { Reveal } from "@/shared/motion";
 
 export default function LoginPage() {
   const router = useRouter();
