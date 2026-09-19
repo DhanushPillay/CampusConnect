@@ -1,11 +1,11 @@
+import { getClassRoster } from "@/features/classes/actions";
 import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Table, THead, TBody, Tr, Th, Td } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Reveal } from "@/components/motion";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { Table, THead, TBody, Tr, Th, Td } from "@/shared/ui/table";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Reveal } from "@/shared/motion";
 import { Users, ArrowLeft } from "lucide-react";
-import { getClassRoster } from "@/lib/actions/teacher";
 
 export const dynamic = "force-dynamic";
 
