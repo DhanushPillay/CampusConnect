@@ -9,7 +9,7 @@ import {
   GraduationCap,
   Wallet,
 } from "lucide-react";
-import { Reveal } from "@/components/motion";
+import { Reveal } from "@/shared/motion";
 
 const modules = [
   { k: "Attendance", v: "Your presence, counted every day.", icon: ClipboardCheck },
