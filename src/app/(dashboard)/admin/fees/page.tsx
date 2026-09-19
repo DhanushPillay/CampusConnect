@@ -1,32 +1,26 @@
+import { getFeeOverview, getFeeStructures, getFeeInvoices, createFeeStructure, createFeeInvoice, recordFeePayment } from "@/features/fees/actions";
+import { getClasses } from "@/features/classes/actions";
+import { getStudentUsers } from "@/features/users/actions";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-} from "@/components/ui/card";
-import { Table, THead, TBody, Tr, Th, Td } from "@/components/ui/table";
-import { Badge, StatusBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input, FieldLabel } from "@/components/ui/input";
+} from "@/shared/ui/card";
+import { Table, THead, TBody, Tr, Th, Td } from "@/shared/ui/table";
+import { Badge, StatusBadge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Input, FieldLabel } from "@/shared/ui/input";
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Reveal } from "@/components/motion";
-import {
-  getFeeOverview,
-  getFeeStructures,
-  getFeeInvoices,
-  getClasses,
-  getStudentUsers,
-  createFeeStructure,
-  createFeeInvoice,
-  recordFeePayment,
-} from "@/lib/actions/admin";
+} from "@/shared/ui/dialog";
+import { Reveal } from "@/shared/motion";
+
 import { formatINR } from "@/lib/utils";
 import { Wallet, CalendarDays } from "lucide-react";
 import { FormSelect } from "../components";
