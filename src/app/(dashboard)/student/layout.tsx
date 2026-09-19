@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutDashboard, ClipboardCheck, FileText, Award, CalendarDays, Wallet } from "lucide-react";
-import { Shell } from "@/components/layouts/shell";
+import { Shell } from "@/shared/layouts/shell";
 
 const links = [
   { href: "/student", label: "Dashboard", icon: LayoutDashboard },
