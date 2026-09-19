@@ -1,13 +1,12 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Reveal } from "@/components/motion";
+import { Card, CardDescription, CardContent } from "@/shared/ui/card";
+import { Reveal } from "@/shared/motion";
 import { CalendarDays } from "lucide-react";
-import { getTeacherTimetable } from "@/lib/actions/teacher";
+import { TimetableGrid } from "@/shared/timetable-grid";
+
 import { getSession } from "@/lib/auth";
+import { getTeacherTimetable } from "@/features/timetable/actions";
 
 export const dynamic = "force-dynamic";
-
-const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
 export default async function TeacherTimetable() {
   const session = await getSession();
@@ -35,52 +34,25 @@ export default async function TeacherTimetable() {
           </Card>
         </Reveal>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
-          {days.map((d, i) => {
-            const list = rows.filter((r) => r.dayOfWeek === d);
-            return (
-              <Reveal key={d} delay={Math.min(i * 0.05, 0.2)}>
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-brand-600" />
-                      <CardTitle className="text-base capitalize">{d.toLowerCase()}</CardTitle>
-                    </div>
-                    <Badge variant={list.length === 0 ? "muted" : "brand"}>
-                      {list.length === 0 ? "Free" : `${list.length} classes`}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent>
-                    {list.length === 0 ? (
-                      <p className="text-sm text-sub">Free</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {list.map((r) => (
-                          <li key={r.id} className="rounded-lg bg-surface px-3 py-2 text-sm">
-                            <span className="text-xs font-medium text-brand-700">
-                              {r.startTime}–{r.endTime}
-                            </span>
-                            <br />
-                            <span className="font-medium text-ink">{r.subject.name}</span>
-                            <span className="text-sub"> · {r.class.name}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </CardContent>
-                </Card>
-              </Reveal>
-            );
-          })}
-        </div>
+        <TimetableGrid
+          rows={rows}
+          renderRow={(r) => (
+            <li key={r.id} className="rounded-lg bg-surface px-3 py-2 text-sm">
+              <span className="text-xs font-medium text-brand-700">
+                {r.startTime}–{r.endTime}
+              </span>
+              <br />
+              <span className="font-medium text-ink">{r.subject.name}</span>
+              <span className="text-sub"> · {r.class.name}</span>
+            </li>
+          )}
+        />
       )}
       {rows.length > 0 ? (
         <Reveal delay={0.2}>
           <Card className="mt-4">
             <CardContent className="py-4">
-              <CardDescription>
-                {rows.length} sessions across the week
-              </CardDescription>
+              <CardDescription>{rows.length} sessions across the week</CardDescription>
             </CardContent>
           </Card>
         </Reveal>
