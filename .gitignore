@@ -36,6 +36,8 @@ prisma/dev.db*
 .opencode/
 .omo/
 .playwright-mcp/
+.mcp/
+.serena/
 
 # vercel
 .vercel
