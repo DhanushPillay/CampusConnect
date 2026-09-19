@@ -1,14 +1,17 @@
 "use client";
 
+import { submitAssignment } from "@/features/assignments/actions";
+import { submitExam } from "@/features/exams/actions";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge, StatusBadge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Reveal } from "@/components/motion";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { Badge, StatusBadge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Reveal } from "@/shared/motion";
 import { FileText, ClipboardCheck, GraduationCap } from "lucide-react";
-import { submitAssignment, submitExam } from "@/lib/actions/student";
+
 import { formatDate } from "@/lib/utils";
 
 type AssignmentItem = {
