@@ -31,6 +31,8 @@ model User {
   examSubmissions ExamSubmission[]
   grades          Grade[]
   invoices        FeeInvoice[]
+
+  @@index([role])
 }
 
 model Department {
@@ -66,6 +68,7 @@ model Enrollment {
   enrolledAt DateTime @default(now())
 
   @@unique([studentId, classId])
+  @@index([classId])
 }
 
 model Subject {
@@ -84,6 +87,9 @@ model Subject {
   assignments Assignment[]
   exams       Exam[]
   grades      Grade[]
+
+  @@index([teacherId])
+  @@index([classId])
 }
 
 model Timetable {
@@ -100,6 +106,9 @@ model Timetable {
   room      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([classId])
 }
 
 model Attendance {
@@ -117,6 +126,9 @@ model Attendance {
   createdAt  DateTime @default(now())
 
   @@unique([studentId, subjectId, date])
+  @@index([classId])
+  @@index([studentId])
+  @@index([markedById, date])
 }
 
 model Assignment {
@@ -189,6 +201,7 @@ model ExamSubmission {
   submittedAt DateTime @default(now())
 
   @@unique([examId, studentId])
+  @@index([examId])
 }
 
 model Grade {
@@ -204,6 +217,7 @@ model Grade {
   updatedAt     DateTime @updatedAt
 
   @@unique([studentId, subjectId])
+  @@index([studentId])
 }
 
 model FeeStructure {
@@ -231,6 +245,8 @@ model FeeInvoice {
   updatedAt      DateTime     @updatedAt
 
   payments FeePayment[]
+
+  @@index([studentId, status])
 }
 
 model FeePayment {
@@ -241,4 +257,6 @@ model FeePayment {
   method    String     @default("CASH")
   status    String     @default("COMPLETED")
   paidAt    DateTime   @default(now())
+
+  @@index([invoiceId])
 }
