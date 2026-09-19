@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Card, CardContent } from "@/shared/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
+import { Badge } from "@/shared/ui/badge";
+import { buttonVariants } from "@/shared/ui/button";
 import { Reveal } from "@/shared/motion";
 import { ClipboardCheck, Award, GraduationCap, Wallet } from "lucide-react";
+import { cn, formatINR } from "@/lib/utils";
 
 import { getSession } from "@/lib/auth";
 import { getStudentDashboard } from "@/features/overview/actions";
-import { formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +22,16 @@ export default async function StudentDashboard() {
     {
       label: "Fees due",
       value: formatINR(d.pendingFees),
-      hint: `${d.pendingCount} unpaid`,
+      hint: d.pendingCount === 0 ? "Nothing unpaid" : `${d.pendingCount} unpaid`,
       icon: Wallet,
+      badge: d.pendingCount === 0 ? <Badge variant="muted">Clear</Badge> : <Badge variant="warning">Due</Badge>,
     },
+  ];
+
+  const links = [
+    { href: "/student/attendance", label: "View attendance" },
+    { href: "/student/assignments", label: "Submit assignments" },
+    { href: "/student/fees", label: "Check fees" },
   ];
 
   return (
@@ -31,19 +40,28 @@ export default async function StudentDashboard() {
         <h1 className="font-display text-2xl font-extrabold text-ink">
           Hello, {session!.user.name?.split(" ")[0] ?? "Student"}
         </h1>
-        <p className="mt-1 text-sm text-sub">Your week at a glance</p>
+        <p className="mt-1 text-sm text-sub">
+          {d.subjects} classes · {d.attendancePct}% attendance · {d.pendingCount} fees unpaid
+        </p>
       </div>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-4">
         {stats.map((s, i) => (
           <Reveal key={s.label} delay={i * 0.05}>
             <Card>
-              <CardContent>
-                <div className="flex items-center gap-2 text-sub">
-                  <s.icon className="h-4 w-4 text-brand-600" />
-                  <p className="text-sm">{s.label}</p>
-                </div>
-                <p className="mt-2 font-display text-2xl font-extrabold text-ink">{s.value}</p>
-                <p className="mt-1 text-sm text-sub">{s.hint}</p>
+              <CardContent className="flex items-start gap-3">
+                <span className="rounded-lg bg-brand-50 p-2 text-brand-700">
+                  <s.icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-xl font-extrabold text-ink sm:text-2xl">
+                      {s.value}
+                    </span>
+                    {"badge" in s && s.badge}
+                  </span>
+                  <span className="mt-0.5 block text-sm font-medium text-ink">{s.label}</span>
+                  <span className="block text-xs text-sub">{s.hint}</span>
+                </span>
               </CardContent>
             </Card>
           </Reveal>
@@ -51,26 +69,23 @@ export default async function StudentDashboard() {
       </div>
       <Reveal delay={0.2}>
         <Card className="mt-4">
+          <CardHeader>
+            <div>
+              <CardTitle>Quick actions</CardTitle>
+              <CardDescription>Jump to your most-used sections</CardDescription>
+            </div>
+          </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <Link
-                href="/student/attendance"
-                className="rounded-lg bg-brand-50 px-4 py-2 font-semibold text-brand-700"
-              >
-                View attendance
-              </Link>
-              <Link
-                href="/student/assignments"
-                className="rounded-lg bg-brand-50 px-4 py-2 font-semibold text-brand-700"
-              >
-                Submit assignments
-              </Link>
-              <Link
-                href="/student/fees"
-                className="rounded-lg bg-brand-50 px-4 py-2 font-semibold text-brand-700"
-              >
-                Check fees
-              </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              {links.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={cn(buttonVariants({ variant: "secondary" }), "min-h-[44px]")}
+                >
+                  {l.label}
+                </Link>
+              ))}
             </div>
           </CardContent>
         </Card>
