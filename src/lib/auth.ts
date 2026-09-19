@@ -6,9 +6,12 @@ export async function getSession() {
   return await getServerSession(authOptions);
 }
 
-export async function getCurrentUser() {
+export async function requireUser(allowed?: string[]) {
   const session = await getSession();
-  return session?.user;
+  const user = session?.user as { id: string; role: string } | undefined;
+  if (!user?.id) throw new Error("Unauthorized");
+  if (allowed && !allowed.includes(user.role)) throw new Error("Forbidden");
+  return user;
 }
 
 export async function hashPassword(password: string) {
