@@ -1,4 +1,4 @@
-import { CardsSkeleton, Skeleton } from "@/components/ui/skeleton";
+import { CardsSkeleton, Skeleton } from "@/shared/ui/skeleton";
 
 export default function DashboardLoading() {
   return (
