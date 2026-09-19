@@ -1,30 +1,25 @@
+import { getClassesWithStudents, getDepartments, createClass } from "@/features/classes/actions";
+import { getStudentUsers, enrollStudent, unenrollStudent } from "@/features/users/actions";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-} from "@/components/ui/card";
-import { Table, THead, TBody, Tr, Th, Td } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input, FieldLabel } from "@/components/ui/input";
+} from "@/shared/ui/card";
+import { Table, THead, TBody, Tr, Th, Td } from "@/shared/ui/table";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Input, FieldLabel } from "@/shared/ui/input";
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Reveal } from "@/components/motion";
-import {
-  getClassesWithStudents,
-  getDepartments,
-  getStudentUsers,
-  createClass,
-  enrollStudent,
-  unenrollStudent,
-} from "@/lib/actions/admin";
+} from "@/shared/ui/dialog";
+import { Reveal } from "@/shared/motion";
+
 import { FormSelect } from "../components";
 
 export const dynamic = "force-dynamic";
