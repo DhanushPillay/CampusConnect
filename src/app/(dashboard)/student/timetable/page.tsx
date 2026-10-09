@@ -17,7 +17,7 @@ export default async function StudentTimetable() {
         <p className="mt-1 text-sm text-sub">Your weekly schedule</p>
       </div>
       {rows.length === 0 ? (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card>
             <CardHeader>
               <CardTitle>No classes scheduled</CardTitle>
