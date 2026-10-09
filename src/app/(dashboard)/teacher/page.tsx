@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
 import { Badge, StatusBadge } from "@/shared/ui/badge";
-import { Reveal } from "@/shared/motion";
 import { BookOpen, FileText, ClipboardCheck, CalendarDays, ArrowRight } from "lucide-react";
 
 import { getSession } from "@/lib/auth";
@@ -47,9 +46,8 @@ export default async function TeacherDashboard() {
         <p className="mt-1 text-sm text-sub">{subtitle}</p>
       </div>
       <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s, i) => (
-          <Reveal key={s.label} delay={i * 0.05}>
-            <Card>
+        {stats.map((s) => (
+          <Card key={s.label}>
               <CardContent className="flex items-start gap-3">
                 <span className="rounded-lg bg-brand-50 p-2 text-brand-700">
                   <s.icon className="h-5 w-5" />
@@ -63,11 +61,10 @@ export default async function TeacherDashboard() {
                 </span>
               </CardContent>
             </Card>
-          </Reveal>
         ))}
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-5">
-        <Reveal delay={0.1} className="lg:col-span-3">
+        <div className="lg:col-span-3">
           <Card className="h-full">
             <CardHeader>
               <div>
@@ -105,8 +102,8 @@ export default async function TeacherDashboard() {
               </Link>
             </CardContent>
           </Card>
-        </Reveal>
-        <Reveal delay={0.15} className="lg:col-span-2">
+        </div>
+        <div className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader>
               <div>
@@ -136,7 +133,7 @@ export default async function TeacherDashboard() {
               </Link>
             </CardContent>
           </Card>
-        </Reveal>
+        </div>
       </div>
     </div>
   );
