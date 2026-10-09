@@ -15,7 +15,7 @@ export default async function StudentExams() {
         <h1 className="font-display text-2xl font-extrabold text-ink">Exams</h1>
         <p className="mt-1 text-sm text-sub">Published MCQ exams</p>
       </div>
-      <Reveal delay={0.05}>
+      <Reveal>
         <StudentExamsClient exams={exams} />
       </Reveal>
     </div>
