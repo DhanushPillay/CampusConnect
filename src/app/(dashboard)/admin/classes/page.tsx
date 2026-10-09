@@ -92,7 +92,7 @@ export default async function AdminClasses() {
           </Card>
         </Reveal>
       ) : (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card>
             <CardHeader>
               <div>
