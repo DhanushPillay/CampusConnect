@@ -36,7 +36,7 @@ export default async function TakeExam({ params }: { params: { id: string } }) {
             {exam.subject.name} · {exam.duration} min
           </p>
         </div>
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-4">
@@ -63,7 +63,7 @@ export default async function TakeExam({ params }: { params: { id: string } }) {
           {exam.subject.name} · {exam.duration} min
         </p>
       </div>
-      <Reveal delay={0.05}>
+      <Reveal>
         <TakeExamClient examId={exam.id} studentId={studentId} questions={exam.questions} />
       </Reveal>
     </div>
