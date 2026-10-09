@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { buttonVariants } from "@/shared/ui/button";
-import { Reveal } from "@/shared/motion";
 import { Users, School, BookOpen, Wallet, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,8 +27,7 @@ export default async function AdminDashboard() {
   ];
   return (
     <div>
-      <Reveal>
-        <div className="hero-gradient mb-6 rounded-2xl p-6 text-white shadow-card sm:p-7">
+      <div className="hero-gradient mb-6 rounded-2xl p-6 text-white shadow-card sm:p-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">
             MIT-ADT single campus
           </p>
@@ -40,11 +38,9 @@ export default async function AdminDashboard() {
             <Badge className="bg-white/15 text-white">{formatDate(new Date())}</Badge>
           </div>
         </div>
-      </Reveal>
       <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, i) => (
-          <Reveal key={stat.label} delay={Math.min(0.05 + i * 0.05, 0.2)}>
-            <Card className="transition-shadow hover:shadow-pop">
+        {stats.map((stat) => (
+          <Card key={stat.label} className="transition-shadow hover:shadow-pop">
               <CardContent className="flex items-start gap-3">
                 <span className={cn("rounded-lg p-2", stat.tint)}>
                   <stat.icon className="h-5 w-5" />
@@ -61,11 +57,10 @@ export default async function AdminDashboard() {
                 </span>
               </CardContent>
             </Card>
-          </Reveal>
         ))}
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-5">
-        <Reveal delay={0.1} className="lg:col-span-3">
+        <div className="lg:col-span-3">
           <Card className="h-full">
             <CardHeader>
               <div>
@@ -81,8 +76,8 @@ export default async function AdminDashboard() {
               </Link>
             </CardContent>
           </Card>
-        </Reveal>
-        <Reveal delay={0.15} className="lg:col-span-2">
+        </div>
+        <div className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader>
               <div>
@@ -104,7 +99,7 @@ export default async function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-        </Reveal>
+        </div>
       </div>
     </div>
   );
