@@ -96,7 +96,7 @@ export default async function TeacherAttendance({
         </Card>
       </Reveal>
       {rows.length === 0 ? (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card className="mt-4">
             <CardContent>
               <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ export default async function TeacherAttendance({
           </Card>
         </Reveal>
       ) : (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card className="mt-4">
             <CardHeader>
               <div>
