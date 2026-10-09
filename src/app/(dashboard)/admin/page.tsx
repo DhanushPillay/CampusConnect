@@ -4,43 +4,54 @@ import { Badge } from "@/shared/ui/badge";
 import { buttonVariants } from "@/shared/ui/button";
 import { Reveal } from "@/shared/motion";
 import { Users, School, BookOpen, Wallet, ArrowRight } from "lucide-react";
-import { cn, formatDate, formatINR } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 import { getAdminStats } from "@/features/overview/actions";
+import { formatDate, formatINR } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
   const s = await getAdminStats();
   const stats = [
-    { label: "Users", value: String(s.users), hint: "Admin, teacher, student", icon: Users },
-    { label: "Classes", value: String(s.classes), hint: "Across departments", icon: School },
-    { label: "Subjects", value: String(s.subjects), hint: "With teachers assigned", icon: BookOpen },
+    { label: "Users", value: String(s.users), hint: "Admin, teacher, student", icon: Users, tint: "bg-brand-50 text-brand-700" },
+    { label: "Classes", value: String(s.classes), hint: "Across departments", icon: School, tint: "bg-brand-50 text-brand-700" },
+    { label: "Subjects", value: String(s.subjects), hint: "With teachers assigned", icon: BookOpen, tint: "bg-magenta/10 text-magenta" },
     {
       label: "Pending fees",
       value: formatINR(s.pendingFees),
       hint: "Unpaid invoices",
       icon: Wallet,
+      tint: "bg-ember/10 text-ember",
       badge: s.pendingFees === 0 ? <Badge variant="muted">Clear</Badge> : <Badge variant="warning">Due</Badge>,
     },
   ];
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-extrabold text-ink">Admin overview</h1>
-        <p className="mt-1 text-sm text-sub">MIT-ADT single campus · {formatDate(new Date())}</p>
-      </div>
+      <Reveal>
+        <div className="hero-gradient mb-6 rounded-2xl p-6 text-white shadow-card sm:p-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">
+            MIT-ADT single campus
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight sm:text-[28px]">
+            Admin overview
+          </h1>
+          <div className="mt-3">
+            <Badge className="bg-white/15 text-white">{formatDate(new Date())}</Badge>
+          </div>
+        </div>
+      </Reveal>
       <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, i) => (
-          <Reveal key={stat.label} delay={i * 0.06}>
-            <Card>
+          <Reveal key={stat.label} delay={Math.min(0.05 + i * 0.05, 0.2)}>
+            <Card className="transition-shadow hover:shadow-pop">
               <CardContent className="flex items-start gap-3">
-                <span className="rounded-lg bg-brand-50 p-2 text-brand-700">
+                <span className={cn("rounded-lg p-2", stat.tint)}>
                   <stat.icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-2">
-                    <span className="font-display text-xl font-extrabold text-ink sm:text-2xl">
+                    <span className="font-display text-xl font-extrabold tabular-nums tracking-tight text-ink sm:text-2xl">
                       {stat.value}
                     </span>
                     {"badge" in stat && stat.badge}
@@ -65,7 +76,7 @@ export default async function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <Link href="/admin/fees" className={cn(buttonVariants({ variant: "secondary" }), "min-h-[44px]")}>
+              <Link href="/admin/fees" className={cn(buttonVariants({ variant: "default" }), "min-h-[44px]")}>
                 Review invoices <ArrowRight className="h-4 w-4" />
               </Link>
             </CardContent>
@@ -81,13 +92,13 @@ export default async function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                <Link href="/admin/users" className={cn(buttonVariants({ variant: "secondary" }), "min-h-[44px]")}>
+                <Link href="/admin/users" className={cn(buttonVariants({ variant: "outline" }), "min-h-[44px]")}>
                   Users
                 </Link>
-                <Link href="/admin/classes" className={cn(buttonVariants({ variant: "secondary" }), "min-h-[44px]")}>
+                <Link href="/admin/classes" className={cn(buttonVariants({ variant: "outline" }), "min-h-[44px]")}>
                   Classes
                 </Link>
-                <Link href="/admin/timetable" className={cn(buttonVariants({ variant: "secondary" }), "min-h-[44px]")}>
+                <Link href="/admin/timetable" className={cn(buttonVariants({ variant: "outline" }), "min-h-[44px]")}>
                   Timetable
                 </Link>
               </div>
