@@ -81,7 +81,7 @@ export default function LandingPage() {
           </section>
         </Reveal>
 
-        <Reveal delay={0.08}>
+        <Reveal>
           <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {stats.map((s) => (
               <div
@@ -99,7 +99,7 @@ export default function LandingPage() {
 
         <section className="mt-10 grid grid-cols-1 gap-4 pb-16 md:grid-cols-3">
           {modules.map((m, i) => (
-            <Reveal key={m.k} delay={0.05 * i}>
+            <Reveal key={m.k}>
               <div className="group rounded-xl border border-border/70 bg-white p-5 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-pop">
                 <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-600 group-hover:text-white">
                   <m.icon className="h-5 w-5" />
