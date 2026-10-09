@@ -1,57 +1,62 @@
 # Deployment Guide
 
-Local-first app. No Supabase, Vercel, Razorpay, Resend, Docker, or AWS involved.
+Production target: Vercel Hobby + Neon Postgres (free tiers). No Docker, AWS, Razorpay, or Resend involved.
 
 ---
 
 ## Prerequisites
 
 - Node.js 18+ and npm
-- That's it. SQLite file DB, no external services.
+- A Neon Postgres project (provisioned via Vercel Storage tab → Neon integration)
+- Vercel project linked to this repo
 
 ---
 
 ## Local run
 
+Local dev also uses Postgres now (schema provider is `postgresql` — SQLite is no longer supported).
+
 ```bash
 npm install
-cp .env.example .env.local   # fill in the 4 vars below
+cp .env.example .env.local   # fill in DATABASE_URL + DIRECT_URL (Neon branch URL works)
 npx prisma migrate dev
 npm run dev                  # http://localhost:3000
 ```
 
----
-
-## Production build (same machine or any Node host)
+Note: Prisma CLI does not read `.env.local`. Export `DATABASE_URL` and `DIRECT_URL` inline when running Prisma commands outside Next.js, e.g.:
 
 ```bash
-npm run build
-npm start
+$env:DATABASE_URL="<direct Neon URL>"; $env:DIRECT_URL="<direct Neon URL>"; npx prisma migrate dev
 ```
 
-Scripts: `dev`, `build`, `start`, `lint`. No containers, no serverless config.
+---
+
+## Production build (Vercel)
+
+Vercel runs `npm run vercel-build`, which is `prisma generate && prisma migrate deploy && next build`.
+
+Scripts: `dev`, `build`, `vercel-build`, `start`, `typecheck`, `test`, `boundaries`.
 
 ---
 
 ## Database
 
-SQLite. `DATABASE_URL="file:./dev.db"` in `.env.example`.
+Postgres (Neon). `DATABASE_URL` is the pooled URL (runtime), `DIRECT_URL` is the direct URL (migrations).
 
-- Local/dev: `npx prisma migrate dev`
-- Prod: `npx prisma migrate deploy`
-- The `dev.db` file lives next to the schema. Back it up if it matters.
+- Local/dev: `npx prisma migrate dev` (needs direct URL exported)
+- Prod: `npx prisma migrate deploy` (runs automatically in `vercel-build`)
+- Seed (demo accounts, `password123`): `npx prisma db seed` — run **once manually**, never on deploy
 
 ---
 
 ## Environment variables
 
-Only 4 (see `docs/environment.md`):
-
 ```
-DATABASE_URL="file:./dev.db"
-NEXTAUTH_URL="http://localhost:3000"
+DATABASE_URL="<pooled Neon URL>"
+DIRECT_URL="<direct Neon URL>"
+NEXTAUTH_URL="https://<your-app>.vercel.app"
 NEXTAUTH_SECRET="<generated>"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="https://<your-app>.vercel.app"
 ```
 
 Generate the secret with:
@@ -66,8 +71,8 @@ Never ship `change-me-in-production`.
 
 ## What production still needs
 
-1. **Hosted database** — SQLite file works on one VM (with backups). For multi-instance, move to Postgres and update `DATABASE_URL` + `datasource db provider` in `prisma/schema.prisma`.
-2. **Migrate on deploy** — run `npx prisma migrate deploy` before `npm start`.
+1. **Neon database** — create via Vercel Storage tab; vars auto-inject into the Vercel project.
+2. **Migrate on deploy** — automatic via `vercel-build`.
 3. **Real secret + URLs** — fresh `NEXTAUTH_SECRET`, `NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` set to the public origin (https).
 4. **Auth** stays next-auth JWT Credentials. No OAuth/Supabase keys to configure.
 
@@ -75,6 +80,6 @@ Never ship `change-me-in-production`.
 
 ## Troubleshooting
 
-- **Prisma can't find DB:** check `DATABASE_URL` path and that `prisma/migrations` ran.
+- **Prisma can't find DB:** export `DATABASE_URL`/`DIRECT_URL` inline (Prisma ignores `.env.local`); check `prisma/migrations` ran.
 - **Auth loops / JWT errors:** `NEXTAUTH_SECRET` missing or changed; `NEXTAUTH_URL` must match the origin.
-- **Build fails:** run `npm run lint` locally and fix errors first.
+- **Build fails:** run `npm run typecheck` locally and fix errors first.
