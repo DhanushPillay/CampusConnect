@@ -21,7 +21,7 @@ export default async function StudentAttendance() {
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {perSubject.map((s, i) => (
-          <Reveal key={s.code} delay={i * 0.05}>
+          <Reveal key={s.code}>
             <Card>
               <CardHeader>
                 <div>
@@ -50,7 +50,7 @@ export default async function StudentAttendance() {
           </Reveal>
         ))}
       </div>
-      <Reveal delay={0.15}>
+      <Reveal>
         <Card className="mt-4">
           <CardHeader>
             <div>
