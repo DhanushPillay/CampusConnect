@@ -46,7 +46,7 @@ export default async function ClassRosterPage({ params }: { params: { classId: s
           </Card>
         </Reveal>
       ) : (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card>
             <CardHeader>
               <div>
