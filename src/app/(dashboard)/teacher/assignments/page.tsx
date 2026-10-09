@@ -21,7 +21,7 @@ export default async function TeacherAssignments() {
         <h1 className="font-display text-2xl font-extrabold text-ink">Assignments</h1>
         <p className="mt-1 text-sm text-sub">Create, collect, grade</p>
       </div>
-      <Reveal delay={0.05}>
+      <Reveal>
         <AssignmentsClient assignments={assignments} pending={pending} subjects={subjects} teacherId={teacherId} />
       </Reveal>
     </div>
