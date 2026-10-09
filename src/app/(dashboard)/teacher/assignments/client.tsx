@@ -196,7 +196,7 @@ export function AssignmentsClient({
           </CardContent>
         </Card>
       </Reveal>
-      <Reveal delay={0.05}>
+      <Reveal>
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -382,7 +382,7 @@ export function ExamsClient({
         </Card>
       </Reveal>
       {exams.map((x, i) => (
-        <Reveal key={x.id} delay={Math.min(i * 0.05, 0.2)}>
+        <Reveal key={x.id}>
           <Card>
             <CardHeader>
               <div>
