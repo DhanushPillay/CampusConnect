@@ -38,7 +38,7 @@ export default async function TeacherClasses() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {subjects.map((s, i) => (
-            <Reveal key={s.id} delay={i * 0.05}>
+            <Reveal key={s.id}>
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
