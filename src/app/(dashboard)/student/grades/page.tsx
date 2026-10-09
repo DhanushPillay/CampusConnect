@@ -20,7 +20,7 @@ export default async function StudentGrades() {
         <p className="mt-1 text-sm text-sub">Marks per subject</p>
       </div>
       {empty ? (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -33,7 +33,7 @@ export default async function StudentGrades() {
         </Reveal>
       ) : (
         <div className="space-y-4">
-          <Reveal delay={0.05}>
+          <Reveal>
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export default async function StudentGrades() {
               </CardContent>
             </Card>
           </Reveal>
-          <Reveal delay={0.1}>
+          <Reveal>
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
