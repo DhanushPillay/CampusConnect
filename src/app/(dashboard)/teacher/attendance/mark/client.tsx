@@ -128,7 +128,7 @@ export default function MarkClient({
           </CardContent>
         </Card>
       </Reveal>
-      <Reveal delay={0.05}>
+      <Reveal>
         <Card>
           <CardHeader>
             <div>
@@ -165,7 +165,7 @@ export default function MarkClient({
           </CardContent>
         </Card>
       </Reveal>
-      <Reveal delay={0.1}>
+      <Reveal>
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={save}>
             <ClipboardCheck className="h-4 w-4" />
