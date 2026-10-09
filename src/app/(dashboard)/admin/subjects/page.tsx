@@ -95,7 +95,7 @@ export default async function AdminSubjects() {
           </Card>
         </Reveal>
       ) : (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card>
             <CardHeader>
               <div>
