@@ -49,7 +49,7 @@ export default async function TeacherTimetable() {
         />
       )}
       {rows.length > 0 ? (
-        <Reveal delay={0.2}>
+        <Reveal>
           <Card className="mt-4">
             <CardContent className="py-4">
               <CardDescription>{rows.length} sessions across the week</CardDescription>
