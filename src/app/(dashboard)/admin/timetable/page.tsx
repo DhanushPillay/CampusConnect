@@ -132,7 +132,7 @@ export default async function AdminTimetable() {
           </Card>
         </Reveal>
       ) : (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card>
             <CardHeader>
               <div>
