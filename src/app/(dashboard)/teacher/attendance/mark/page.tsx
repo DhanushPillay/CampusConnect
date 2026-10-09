@@ -34,7 +34,7 @@ export default async function MarkPage() {
         <h1 className="font-display text-2xl font-extrabold text-ink">Mark attendance</h1>
         <p className="mt-1 text-sm text-sub">Pick a class and date, then save the register</p>
       </div>
-      <Reveal delay={0.05}>
+      <Reveal>
         <MarkClient
           classes={classes}
           studentsByClass={byClass}
