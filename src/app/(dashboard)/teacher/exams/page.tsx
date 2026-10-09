@@ -20,7 +20,7 @@ export default async function TeacherExams() {
         <h1 className="font-display text-2xl font-extrabold text-ink">Exams</h1>
         <p className="mt-1 text-sm text-sub">MCQ exams with auto-grading</p>
       </div>
-      <Reveal delay={0.05}>
+      <Reveal>
         <ExamsClient exams={exams} subjects={subjects} teacherId={teacherId} />
       </Reveal>
     </div>
