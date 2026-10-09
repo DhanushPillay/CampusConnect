@@ -32,7 +32,7 @@ export default async function StudentFees() {
         </p>
       </div>
       {invoices.length === 0 ? (
-        <Reveal delay={0.05}>
+        <Reveal>
           <Card>
             <CardHeader>
               <CardTitle>No invoices</CardTitle>
@@ -43,7 +43,7 @@ export default async function StudentFees() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Reveal delay={0.05}>
+            <Reveal>
               <Card>
                 <CardContent>
                   <div className="flex items-center gap-2 text-sub">
@@ -57,7 +57,7 @@ export default async function StudentFees() {
                 </CardContent>
               </Card>
             </Reveal>
-            <Reveal delay={0.1}>
+            <Reveal>
               <Card>
                 <CardContent>
                   <div className="rounded-lg bg-emerald-50 px-4 py-3">
@@ -70,7 +70,7 @@ export default async function StudentFees() {
               </Card>
             </Reveal>
           </div>
-          <Reveal delay={0.15}>
+          <Reveal>
             <Card className="mt-4">
               <CardHeader>
                 <div>
@@ -123,7 +123,7 @@ export default async function StudentFees() {
           </Reveal>
           <div className="mt-4 space-y-4">
             {invoices.map((i, idx) => (
-              <Reveal key={i.id} delay={Math.min(idx * 0.05, 0.2)}>
+              <Reveal key={i.id}>
                 <Card>
                   <CardHeader>
                     <div>
