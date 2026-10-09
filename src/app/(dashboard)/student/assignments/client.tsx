@@ -51,7 +51,7 @@ export function StudentAssignmentsClient({
         const sub = a.submissions[0];
         const graded = sub?.marksObtained != null;
         return (
-          <Reveal key={a.id} delay={Math.min(i * 0.05, 0.2)}>
+          <Reveal key={a.id}>
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -146,7 +146,7 @@ export function StudentExamsClient({
       {exams.map((x, i) => {
         const attempt = x.submissions[0];
         return (
-          <Reveal key={x.id} delay={Math.min(i * 0.05, 0.2)}>
+          <Reveal key={x.id}>
             <Card>
               <CardContent>
                 <div className="flex items-center justify-between gap-4">
@@ -191,7 +191,7 @@ export function TakeExamClient({
       {questions.map((q, qi) => {
         const opts: string[] = JSON.parse(q.options);
         return (
-          <Reveal key={q.id} delay={Math.min(qi * 0.05, 0.2)}>
+          <Reveal key={q.id}>
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export function TakeExamClient({
           </Reveal>
         );
       })}
-      <Reveal delay={0.1}>
+      <Reveal>
         <div className="flex flex-wrap items-center gap-3">
           <Button
             disabled={submitting || result != null}
