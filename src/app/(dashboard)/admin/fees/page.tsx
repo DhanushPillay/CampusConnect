@@ -165,7 +165,7 @@ export default async function AdminFees() {
       </div>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         {stats.map((stat, i) => (
-          <Reveal key={stat.label} delay={i * 0.06}>
+          <Reveal key={stat.label}>
             <Card>
               <CardContent className="flex items-start gap-3">
                 <span className="rounded-lg bg-brand-50 p-2 text-brand-700">
@@ -183,7 +183,7 @@ export default async function AdminFees() {
           </Reveal>
         ))}
       </div>
-      <Reveal delay={0.1} className="mt-6">
+      <Reveal className="mt-6">
         <Card>
           <CardHeader>
             <div>
