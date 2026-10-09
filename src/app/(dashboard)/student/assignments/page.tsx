@@ -15,7 +15,7 @@ export default async function StudentAssignments() {
         <h1 className="font-display text-2xl font-extrabold text-ink">Assignments</h1>
         <p className="mt-1 text-sm text-sub">Submit before the deadline</p>
       </div>
-      <Reveal delay={0.05}>
+      <Reveal>
         <StudentAssignmentsClient items={items} studentId={session!.user.id} />
       </Reveal>
     </div>
