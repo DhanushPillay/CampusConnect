@@ -186,6 +186,7 @@ export function TakeExamClient({
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const answeredAll = questions.every((q) => answers[q.id] !== undefined);
   return (
     <div className="space-y-4">
       {questions.map((q, qi) => {
@@ -230,11 +231,10 @@ export function TakeExamClient({
       <Reveal>
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            disabled={submitting || result != null}
+            disabled={submitting || result != null || !answeredAll}
             onClick={async () => {
               setSubmitting(true);
-              const arr = questions.map((q) => answers[q.id] ?? -1);
-              const s = await submitExam(examId, studentId, arr);
+              const s = await submitExam(examId, studentId, answers);
               setResult(s);
               setSubmitting(false);
               router.refresh();
@@ -246,6 +246,10 @@ export function TakeExamClient({
             <div className="rounded-lg bg-emerald-50 px-4 py-2 text-sm font-semibold text-ink">
               Score: {result}
             </div>
+          ) : !answeredAll ? (
+            <p className="text-sm text-sub">
+              Answer all {questions.length} questions to submit.
+            </p>
           ) : null}
         </div>
       </Reveal>
