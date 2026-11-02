@@ -1,8 +1,9 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireUser, scopedUserId } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { assignTeacherSchema, createClassSchema, createSubjectSchema } from "./schemas";
 
 export async function getClasses() {
   await requireUser(["ADMIN"]);
@@ -14,8 +15,15 @@ export async function getClasses() {
 
 export async function createClass(name: string, section: string, departmentId: string) {
   await requireUser(["ADMIN"]);
-  await prisma.class.create({ data: { name, section, departmentId } });
+  const input = createClassSchema.parse({ name, section, departmentId });
+  const department = await prisma.department.findUnique({
+    where: { id: input.departmentId },
+    select: { id: true },
+  });
+  if (!department) throw new Error("Department not found");
+  await prisma.class.create({ data: input });
   revalidatePath("/admin/classes");
+  revalidatePath("/admin/subjects");
 }
 
 export async function getSubjects() {
@@ -28,19 +36,37 @@ export async function getSubjects() {
 
 export async function createSubject(name: string, code: string, classId: string) {
   await requireUser(["ADMIN"]);
-  const cleanCode = code.trim().toUpperCase();
-  const existing = await prisma.subject.findUnique({ where: { code: cleanCode } });
-  if (existing) throw new Error("Subject code already exists");
-  await prisma.subject.create({ data: { name: name.trim(), code: cleanCode, classId } });
+  const input = createSubjectSchema.parse({ name, code, classId });
+  const cls = await prisma.class.findUnique({ where: { id: input.classId }, select: { id: true } });
+  if (!cls) throw new Error("Class not found");
+
+  try {
+    await prisma.subject.create({ data: input });
+  } catch (error) {
+    if (isUniqueError(error)) throw new Error("Subject code already exists");
+    throw error;
+  }
   revalidatePath("/admin/subjects");
-  revalidatePath("/teacher/subjects");
+  revalidatePath("/teacher/classes");
 }
 
 export async function assignTeacher(subjectId: string, teacherId: string) {
   await requireUser(["ADMIN"]);
-  await prisma.subject.update({ where: { id: subjectId }, data: { teacherId } });
+  const input = assignTeacherSchema.parse({ subjectId, teacherId });
+  const [subject, teacher] = await Promise.all([
+    prisma.subject.findUnique({ where: { id: input.subjectId }, select: { id: true } }),
+    prisma.user.findUnique({
+      where: { id: input.teacherId },
+      select: { role: true, isActive: true },
+    }),
+  ]);
+  if (!subject) throw new Error("Subject not found");
+  if (teacher?.role !== "TEACHER" || !teacher.isActive) throw new Error("Teacher not found");
+
+  await prisma.subject.update({ where: { id: input.subjectId }, data: { teacherId: input.teacherId } });
   revalidatePath("/admin/subjects");
-  revalidatePath("/teacher/subjects");
+  revalidatePath("/admin/timetable");
+  revalidatePath("/teacher/classes");
   revalidatePath("/teacher/timetable");
 }
 
@@ -62,20 +88,29 @@ export async function getClassesWithStudents() {
 }
 
 export async function getTeacherSubjects(teacherId: string) {
-  await requireUser(["TEACHER","ADMIN"]);
+  const me = await requireUser(["TEACHER", "ADMIN"]);
+  const id = scopedUserId(me, teacherId);
   return prisma.subject.findMany({
-    where: { teacherId },
+    where: { teacherId: id },
     include: {
       class: true,
       _count: { select: { assignments: true, exams: true } },
     },
+    orderBy: { name: "asc" },
   });
 }
 
 export async function getClassRoster(classId: string) {
-  await requireUser(["TEACHER","ADMIN"]);
-  const [cls, enrollments, attGroups, attPresent, subjects] = await Promise.all([
-    prisma.class.findUnique({ where: { id: classId } }),
+  const me = await requireUser(["TEACHER", "ADMIN"]);
+  const cls = await prisma.class.findUnique({ where: { id: classId } });
+  if (!cls) throw new Error("Class not found");
+
+  if (me.role !== "ADMIN") {
+    const teaches = await prisma.subject.count({ where: { classId, teacherId: me.id } });
+    if (!teaches) throw new Error("Forbidden");
+  }
+
+  const [enrollments, attGroups, attPresent, subjects] = await Promise.all([
     prisma.enrollment.findMany({
       where: { classId },
       include: { student: { select: { id: true, name: true, email: true } } },
@@ -94,27 +129,31 @@ export async function getClassRoster(classId: string) {
     select: { studentId: true, marksObtained: true, totalMarks: true },
   });
   const gradesByStudent = new Map<string, { sum: number; n: number }>();
-  for (const g of grades) {
-    if (!g.totalMarks) continue;
-    const cur = gradesByStudent.get(g.studentId) ?? { sum: 0, n: 0 };
-    cur.sum += g.marksObtained / g.totalMarks;
-    cur.n += 1;
-    gradesByStudent.set(g.studentId, cur);
+  for (const grade of grades) {
+    if (!grade.totalMarks) continue;
+    const current = gradesByStudent.get(grade.studentId) ?? { sum: 0, n: 0 };
+    current.sum += grade.marksObtained / grade.totalMarks;
+    current.n += 1;
+    gradesByStudent.set(grade.studentId, current);
   }
-  const students = enrollments.map((e) => {
-    const total = totalMap.get(e.studentId) ?? 0;
-    const present = presentMap.get(e.studentId) ?? 0;
-    const gr = gradesByStudent.get(e.studentId);
+  const students = enrollments.map((enrollment) => {
+    const total = totalMap.get(enrollment.studentId) ?? 0;
+    const present = presentMap.get(enrollment.studentId) ?? 0;
+    const grade = gradesByStudent.get(enrollment.studentId);
     return {
-      id: e.student.id,
-      name: e.student.name,
-      email: e.student.email,
+      id: enrollment.student.id,
+      name: enrollment.student.name,
+      email: enrollment.student.email,
       present,
       total,
       attendancePct: total ? Math.round((present / total) * 100) : 0,
-      avgPct: gr && gr.n ? Math.round((gr.sum / gr.n) * 100) : 0,
-      gradesCount: gr?.n ?? 0,
+      avgPct: grade && grade.n ? Math.round((grade.sum / grade.n) * 100) : 0,
+      gradesCount: grade?.n ?? 0,
     };
   });
   return { class: cls, students };
+}
+
+function isUniqueError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
 }
