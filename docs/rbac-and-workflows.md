@@ -1,6 +1,6 @@
 # CampusConnect — RBAC, Dashboard UX & Core Workflow Architecture
 
-Master spec for Role-Based Access Control (RBAC), dashboards, and core workflows. Maps to the Prisma schema (SQLite) and Next.js App Router. Auth is next-auth JWT Credentials; roles are the `role` string on `User` (`ADMIN`, `TEACHER`, `STUDENT`).
+Master spec for Role-Based Access Control (RBAC), dashboards, and core workflows. Maps to the Prisma schema (PostgreSQL) and Next.js App Router. Auth is next-auth JWT Credentials; roles are the `role` string on `User` (`ADMIN`, `TEACHER`, `STUDENT`).
 
 Only models listed here exist in `prisma/schema.prisma`. There is no Campus, AcademicYear/Semester, Book, Hostel, BusRoute, Notice, Chat, or StudyMaterial model.
 
@@ -34,7 +34,7 @@ Only models listed here exist in `prisma/schema.prisma`. There is no Campus, Aca
 | `Assignment` | `R` (oversight) | `C R U D` (`createAssignment`, own subjects) | `R` (own class) | Admin does not create assignments. |
 | `Submission` | `R` (oversight) | `R` + grade (`gradeSubmission`, own assignments) | `C U` (`submitAssignment` upsert) | Unique on `[assignmentId, studentId]`; resubmit overwrites content. No `D` for students. |
 | `Exam` / `Question` | `R` | `C R U D` (`createExam`, `addQuestion`, `publishExam`, own subjects) | `R` (published only) | Teacher sees `correctOption`; students never query `Question.correctOption`. |
-| `ExamSubmission` | `R` | `R` (attempts via `getExamAttempts`, own exams) | `C U` (`submitExam`, own only) | Unique on `[examId, studentId]`; re-submit re-grades. |
+| `ExamSubmission` | `R` | `R` (attempts via `getExamAttempts`, own exams) | `C` (`submitExam`, own only) | Unique on `[examId, studentId]`; single attempt, no retake. |
 | `Grade` | `R` | `C U` (own subjects; written by `gradeSubmission` upsert) | `R` (own only) | Unique on `[studentId, subjectId]`. No publish gate — grading writes `Grade` directly. |
 
 ### 1.4 Financials
@@ -67,7 +67,7 @@ Not implemented. No `Book`, `Hostel`, `BusRoute`, `Notice`, `Chat`, or `StudyMat
 
 ### 2.3 Student Dashboard (`/student`)
 *   **KPIs:** Attendance %, average %, pending fees (`getStudentDashboard`).
-*   **Sections:** Attendance (`/student/attendance`), Assignments (`/student/assignments`), Grades (`/student/grades`), Timetable (`/student/timetable`), Fees (`/student/fees`). Exams live under assignments (`/student/exams` route, `submitExam`).
+*   **Sections:** Attendance (`/student/attendance`), Assignments (`/student/assignments`), Exams (`/student/exams`), Grades (`/student/grades`), Timetable (`/student/timetable`), Fees (`/student/fees`).
 *   **Quick Actions:** `View Timetable`, `Submit Assignment`, `Pay Fees`.
 
 ---
@@ -95,7 +95,7 @@ Not implemented. No `Book`, `Hostel`, `BusRoute`, `Notice`, `Chat`, or `StudyMat
 ### 3.4 Student: Assignment + Exam Workflow
 1. **Assignments:** `/student/assignments` lists class assignments with submission state.
 2. **Submit:** `submitAssignment(assignmentId, studentId, content)` — upsert on `[assignmentId, studentId]`.
-3. **Exams:** Published exams only (`isPublished`, `getStudentExams`). `submitExam(examId, studentId, answers)` auto-grades against `Question.correctOption`, sums `marks`, upserts `ExamSubmission` with `score`. Returns the score.
+3. **Exams:** Published exams only (`isPublished`, `getStudentExams`). `submitExam(examId, studentId, answers)` takes a map of question id to option index, auto-grades against `Question.correctOption`, sums `marks`, and creates one `ExamSubmission` with `score`. A second attempt is rejected. Returns the score.
 
 ### 3.5 Student: Pay Fee Workflow (manual)
 1. **Invoices:** `/student/fees` via `getStudentFees` (invoice + structure + payments).
@@ -115,3 +115,6 @@ Not implemented. No `Book`, `Hostel`, `BusRoute`, `Notice`, `Chat`, or `StudyMat
 8.  **Rewriting history on transfer:** Model transfers as new `Enrollment` rows, not overwrites.
 9.  **N+1 queries:** Precompute aggregates; use `include`/`select` efficiently in Prisma.
 10. **Exam answer leakage:** Never send `Question.correctOption` to students; `submitExam` scores server-side.
+11. **Trusting client ids:** Do not use a `teacherId`/`studentId` argument for authorization. Actions call `scopedUserId` and verify ownership from the database.
+12. **Editing live exams:** Questions cannot be changed after `isPublished`; marks must equal `totalMarks` before publishing.
+13. **Unenforced uniqueness:** Fee invoices have a DB unique index on `[studentId, feeStructureId]`; actions pre-check for a readable error, but the index is the race-safe guard.
