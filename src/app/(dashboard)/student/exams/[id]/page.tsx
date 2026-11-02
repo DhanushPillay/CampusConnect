@@ -3,20 +3,26 @@ import { Badge } from "@/shared/ui/badge";
 import { Reveal } from "@/shared/motion";
 import { TakeExamClient } from "../../assignments/client";
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function TakeExam({ params }: { params: { id: string } }) {
-  const [session, exam] = await Promise.all([
-    getSession(),
+  const [me, exam] = await Promise.all([
+    requireUser(["STUDENT"]),
     prisma.exam.findUnique({
       where: { id: params.id },
-      include: { subject: true, questions: { select: { id: true, questionText: true, options: true } } },
+      include: {
+        subject: true,
+        questions: {
+          select: { id: true, questionText: true, options: true },
+          orderBy: { id: "asc" },
+        },
+      },
     }),
   ]);
-  const studentId = session!.user.id;
+  const studentId = me.id;
   if (!exam || !exam.isPublished) notFound();
   const [enrollment, existing] = await Promise.all([
     prisma.enrollment.findFirst({
