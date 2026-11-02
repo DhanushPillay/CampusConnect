@@ -1,8 +1,9 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireUser, scopedUserId } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { createAssignmentSchema, gradeSchema, submitAssignmentSchema } from "./schemas";
 
 function letterFor(pct: number) {
   if (pct >= 90) return "A";
@@ -13,9 +14,10 @@ function letterFor(pct: number) {
 }
 
 export async function getTeacherAssignments(teacherId: string) {
-  await requireUser(["TEACHER","ADMIN"]);
+  const me = await requireUser(["TEACHER", "ADMIN"]);
+  const id = scopedUserId(me, teacherId);
   return prisma.assignment.findMany({
-    where: { teacherId },
+    where: { teacherId: id },
     include: { subject: true, _count: { select: { submissions: true } } },
     orderBy: { deadline: "asc" },
   });
@@ -26,19 +28,44 @@ export async function createAssignment(input: {
   description: string;
   subjectId: string;
   teacherId: string;
-  deadline: Date;
+  deadline: Date | string;
   maxMarks: number;
 }) {
-  await requireUser(["TEACHER","ADMIN"]);
-  await prisma.assignment.create({ data: input });
+  const me = await requireUser(["TEACHER", "ADMIN"]);
+  const parsed = createAssignmentSchema.parse(input);
+  const teacherId = scopedUserId(me, parsed.teacherId);
+
+  const subject = await prisma.subject.findUnique({
+    where: { id: parsed.subjectId },
+    select: { teacherId: true },
+  });
+  if (!subject) throw new Error("Subject not found");
+  if (subject.teacherId !== teacherId) throw new Error("Teacher is not assigned to this subject");
+
+  const deadline = new Date(parsed.deadline);
+  if (Number.isNaN(deadline.getTime())) throw new Error("Invalid deadline");
+
+  await prisma.assignment.create({
+    data: {
+      title: parsed.title,
+      description: parsed.description,
+      subjectId: parsed.subjectId,
+      teacherId,
+      deadline,
+      maxMarks: parsed.maxMarks,
+    },
+  });
   revalidatePath("/teacher/assignments");
+  revalidatePath("/teacher");
   revalidatePath("/student/assignments");
+  revalidatePath("/student");
 }
 
 export async function getPendingSubmissions(teacherId: string) {
-  await requireUser(["TEACHER","ADMIN"]);
+  const me = await requireUser(["TEACHER", "ADMIN"]);
+  const id = scopedUserId(me, teacherId);
   return prisma.submission.findMany({
-    where: { assignment: { teacherId }, marksObtained: null },
+    where: { assignment: { teacherId: id }, marksObtained: null },
     include: {
       assignment: { select: { title: true, maxMarks: true } },
       student: { select: { name: true } },
@@ -48,95 +75,120 @@ export async function getPendingSubmissions(teacherId: string) {
 }
 
 export async function gradeSubmission(id: string, marks: number, feedback: string, graderId: string) {
-  const me4 = await requireUser(["TEACHER", "ADMIN"]);
-  if (me4.role !== "ADMIN" && graderId !== me4.id) throw new Error("Forbidden");
-  const sub = await prisma.submission.findUnique({
-    where: { id },
-    select: { studentId: true, assignment: { select: { subjectId: true, maxMarks: true } } },
+  const me = await requireUser(["TEACHER", "ADMIN"]);
+  const parsed = gradeSchema.parse({ id, marks, feedback, graderId });
+  scopedUserId(me, parsed.graderId);
+  const gradedById = me.id;
+
+  const submission = await prisma.submission.findUnique({
+    where: { id: parsed.id },
+    select: {
+      studentId: true,
+      assignment: { select: { subjectId: true, maxMarks: true, teacherId: true } },
+    },
   });
-  if (!sub) throw new Error("Submission not found");
-  const max = sub.assignment.maxMarks;
-  const safe = Math.max(0, Math.min(Number.isFinite(marks) ? Math.round(marks) : 0, max));
+  if (!submission) throw new Error("Submission not found");
+  if (me.role !== "ADMIN" && submission.assignment.teacherId !== me.id) throw new Error("Forbidden");
+
+  const max = submission.assignment.maxMarks;
+  const safe = Math.max(0, Math.min(Math.round(parsed.marks), max));
   const pct = max > 0 ? (safe / max) * 100 : 0;
   const letter = letterFor(pct);
+
   await prisma.$transaction([
     prisma.submission.update({
-      where: { id },
-      data: { marksObtained: safe, feedback, gradedById: graderId },
+      where: { id: parsed.id },
+      data: { marksObtained: safe, feedback: parsed.feedback.trim(), gradedById },
     }),
     prisma.grade.upsert({
-      where: { studentId_subjectId: { studentId: sub.studentId, subjectId: sub.assignment.subjectId } },
+      where: {
+        studentId_subjectId: {
+          studentId: submission.studentId,
+          subjectId: submission.assignment.subjectId,
+        },
+      },
       update: { marksObtained: safe, totalMarks: max, grade: letter },
       create: {
-        studentId: sub.studentId,
-        subjectId: sub.assignment.subjectId,
+        studentId: submission.studentId,
+        subjectId: submission.assignment.subjectId,
         marksObtained: safe,
         totalMarks: max,
         grade: letter,
       },
     }),
   ]);
+
   revalidatePath("/teacher/assignments");
+  revalidatePath("/teacher");
   revalidatePath("/student/assignments");
   revalidatePath("/student/grades");
   revalidatePath("/student");
 }
 
 export async function getStudentAssignments(studentId: string) {
-  await requireUser(["STUDENT","ADMIN"]);
+  const me = await requireUser(["STUDENT", "ADMIN"]);
+  const id = scopedUserId(me, studentId);
   const enrollments = await prisma.enrollment.findMany({
-    where: { studentId },
+    where: { studentId: id },
     select: { classId: true },
   });
-  const classIds = enrollments.map((e) => e.classId);
-  const assignments = await prisma.assignment.findMany({
+  const classIds = enrollments.map((enrollment) => enrollment.classId);
+  return prisma.assignment.findMany({
     where: { subject: { classId: { in: classIds } } },
     include: {
       subject: { select: { name: true, code: true } },
       submissions: {
-        where: { studentId },
+        where: { studentId: id },
         select: { content: true, marksObtained: true, feedback: true },
       },
     },
     orderBy: { deadline: "asc" },
     take: 50,
   });
-  return assignments;
 }
 
 export async function submitAssignment(assignmentId: string, studentId: string, content: string) {
   const me = await requireUser(["STUDENT", "ADMIN"]);
-  if (me.role !== "ADMIN" && me.id !== studentId) throw new Error("Forbidden");
-  const asg = await prisma.assignment.findUnique({
-    where: { id: assignmentId },
+  const parsed = submitAssignmentSchema.parse({ assignmentId, studentId, content });
+  const id = scopedUserId(me, parsed.studentId);
+
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: parsed.assignmentId },
     select: { id: true, subject: { select: { classId: true } } },
   });
-  if (!asg) throw new Error("Assignment not found");
-  const enr = await prisma.enrollment.findFirst({ where: { studentId, classId: asg.subject.classId } });
-  if (!enr) throw new Error("Forbidden");
+  if (!assignment) throw new Error("Assignment not found");
+
+  const enrollment = await prisma.enrollment.findFirst({
+    where: { studentId: id, classId: assignment.subject.classId },
+  });
+  if (!enrollment) throw new Error("Forbidden");
+
   const prior = await prisma.submission.findUnique({
-    where: { assignmentId_studentId: { assignmentId, studentId } },
+    where: { assignmentId_studentId: { assignmentId: parsed.assignmentId, studentId: id } },
     select: { marksObtained: true },
   });
   if (prior?.marksObtained != null) throw new Error("Already graded");
+
   await prisma.submission.upsert({
-    where: { assignmentId_studentId: { assignmentId, studentId } },
-    update: { content },
-    create: { assignmentId, studentId, content },
+    where: { assignmentId_studentId: { assignmentId: parsed.assignmentId, studentId: id } },
+    update: { content: parsed.content },
+    create: { assignmentId: parsed.assignmentId, studentId: id, content: parsed.content },
   });
+
   revalidatePath("/student/assignments");
   revalidatePath("/student");
 }
 
 export async function getStudentGrades(studentId: string) {
-  await requireUser(["STUDENT","ADMIN"]);
+  const me = await requireUser(["STUDENT", "ADMIN"]);
+  const id = scopedUserId(me, studentId);
   const [grades, examResults] = await Promise.all([
     prisma.grade.findMany({
-      where: { studentId },
+      where: { studentId: id },
       include: { subject: { select: { name: true, code: true } } },
     }),
     prisma.examSubmission.findMany({
-      where: { studentId, exam: { isPublished: true } },
+      where: { studentId: id, exam: { isPublished: true } },
       include: {
         exam: {
           select: {
