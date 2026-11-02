@@ -1,6 +1,8 @@
 # Database
 
-Source of truth: `prisma/schema.prisma`. Provider SQLite (`file:./dev.db`), Prisma 5.19.1. 16 models, no other tables.
+Source of truth: `prisma/schema.prisma`. Provider PostgreSQL (Neon), Prisma 5.19.1. 16 models, no other tables.
+
+`DATABASE_URL` is the pooled runtime URL; `DIRECT_URL` is used by Prisma CLI and migrations.
 
 ---
 
@@ -9,6 +11,7 @@ Source of truth: `prisma/schema.prisma`. Provider SQLite (`file:./dev.db`), Pris
 ### User
 - Fields: `id` uuid PK, `email` String unique, `password` String (bcrypt hash), `name` String, `role` String (`ADMIN`/`TEACHER`/`STUDENT`), `phone` String?, `isActive` Boolean default true, `createdAt`, `updatedAt`.
 - Relations: teaches subjects/timetables/assignments/created exams, marks attendance, grades submissions; student side: enrollments, attendance, submissions, exam submissions, grades, invoices.
+- Index: `role`.
 
 ### Department
 - Fields: `id` uuid PK, `name` String unique, `createdAt`, `updatedAt`.
@@ -21,20 +24,22 @@ Source of truth: `prisma/schema.prisma`. Provider SQLite (`file:./dev.db`), Pris
 ### Enrollment
 - Fields: `id` uuid PK, `studentId`, `classId`, `enrolledAt` default now.
 - Relations: `student -> User` (Cascade), `class -> Class` (Cascade).
-- Unique: `@@unique([studentId, classId])`.
+- Unique: `@@unique([studentId, classId])`. Index: `classId`.
 
 ### Subject
 - Fields: `id` uuid PK, `name`, `code` String unique, `classId`, `teacherId` String? (optional), `createdAt`, `updatedAt`.
 - Relations: `class` (Cascade); `teacher -> User` (SetNull); `timetables[]`, `attendance[]`, `assignments[]`, `exams[]`, `grades[]`.
+- Indexes: `teacherId`, `classId`.
 
 ### Timetable
 - Fields: `id` uuid PK, `classId`, `subjectId`, `teacherId`, `dayOfWeek` String (`MONDAY`..`SATURDAY`), `startTime` String `HH:MM`, `endTime` String `HH:MM`, `room` String?, `createdAt`, `updatedAt`.
 - Delete rules: `class` Cascade, `subject` Cascade, `teacher` Restrict.
+- Indexes: `teacherId`, `classId`.
 
 ### Attendance
-- Fields: `id` uuid PK, `studentId`, `classId`, `subjectId`, `date` DateTime, `status` String (`PRESENT`/`ABSENT`/`LATE`), `markedById` String?, `createdAt`.
+- Fields: `id` uuid PK, `studentId`, `classId`, `subjectId`, `date` DateTime (UTC midnight), `status` String (`PRESENT`/`ABSENT`/`LATE`), `markedById` String?, `createdAt`.
 - Delete rules: student Cascade, class Cascade, subject Cascade, `markedBy -> User` SetNull.
-- Unique: `@@unique([studentId, subjectId, date])`.
+- Unique: `@@unique([studentId, subjectId, date])`. Indexes: `classId`, `studentId`, `(markedById, date)`.
 
 ### Assignment
 - Fields: `id` uuid PK, `title`, `description` String?, `subjectId`, `teacherId`, `deadline` DateTime, `maxMarks` Int, `createdAt`, `updatedAt`.
@@ -56,33 +61,48 @@ Source of truth: `prisma/schema.prisma`. Provider SQLite (`file:./dev.db`), Pris
 - Relations: `exam` (Cascade). No unique constraint.
 
 ### ExamSubmission
-- Fields: `id` uuid PK, `examId`, `studentId`, `answers` String (JSON array string), `score` Int?, `submittedAt` default now.
+- Fields: `id` uuid PK, `examId`, `studentId`, `answers` String (JSON object mapping question id -> option index), `score` Int?, `submittedAt` default now.
 - Delete rules: exam Cascade, student Cascade.
-- Unique: `@@unique([examId, studentId])`.
+- Unique: `@@unique([examId, studentId])`. Index: `examId`.
 
 ### Grade
 - Fields: `id` uuid PK, `studentId`, `subjectId`, `marksObtained` Int, `totalMarks` Int, `grade` String (letter A/B/C/D/F), `createdAt`, `updatedAt`.
 - Delete rules: student Cascade, subject Cascade.
-- Unique: `@@unique([studentId, subjectId])`.
+- Unique: `@@unique([studentId, subjectId])`. Index: `studentId`.
 
 ### FeeStructure
-- Fields: `id` uuid PK, `name`, `amount` Float, `classId`, `dueDate` DateTime, `createdAt`.
+- Fields: `id` uuid PK, `name`, `amount` Float, `classId`, `dueDate` DateTime (UTC midnight), `createdAt`.
 - Relations: `class` (Cascade), `invoices[]`.
 
 ### FeeInvoice
-- Fields: `id` uuid PK, `studentId`, `feeStructureId`, `amount` Float, `dueDate` DateTime, `status` String default `UNPAID` (`UNPAID`/`PARTIAL`/`PAID`), `createdAt`, `updatedAt`.
+- Fields: `id` uuid PK, `studentId`, `feeStructureId`, `amount` Float, `dueDate` DateTime (UTC midnight), `status` String default `UNPAID` (`UNPAID`/`PARTIAL`/`PAID`), `createdAt`, `updatedAt`.
 - Delete rules: student Cascade, `feeStructure` Restrict.
+- Unique: `@@unique([studentId, feeStructureId])`. Index: `(studentId, status)`.
 - Relations: `payments[]`.
 
 ### FeePayment
-- Fields: `id` uuid PK, `invoiceId`, `amount` Float, `method` String default `CASH`, `status` String default `COMPLETED`, `paidAt` default now.
-- Relations: `invoice -> FeeInvoice` (Cascade).
+- Fields: `id` uuid PK, `invoiceId`, `amount` Float, `method` String default `CASH` (`CASH`/`UPI`/`CARD`/`NETBANKING`), `status` String default `COMPLETED`, `paidAt` default now.
+- Relations: `invoice -> FeeInvoice` (Cascade). Index: `invoiceId`.
 
 ---
 
-## Notes
+## Integrity rules
 
 - Auth stores the bcrypt hash in `User.password`; `isActive=false` blocks login in `authorize`.
 - Scoping keys are `Enrollment(studentId, classId)`, `Subject/Timetable.teacherId`, `Assignment.teacherId`, `Exam.createdById`. There is no tenant id column on any model.
-- JSON is stored as `String` (`Question.options`, `ExamSubmission.answers`); parse/stringify in actions.
-- Status/role/grade values are plain `String`s validated in code, not DB enums (SQLite).
+- JSON is stored as `String` (`Question.options`, `ExamSubmission.answers`); actions parse/stringify it. Exam answers are keyed by question id, so reordering questions cannot change scoring.
+- Status/role/grade values are plain `String`s validated in code, not DB enums.
+- `FeeInvoice` uniqueness per student + fee structure is enforced by the database; actions also catch `P2002`.
+- Money uses `Float` in V1. Fee totals are computed as invoice amount minus recorded payments; underpayment sets `PARTIAL`, full payment sets `PAID`.
+- Deleting a student, class, or subject cascades academic records. Deactivate users instead of deleting them to preserve history.
+
+## Migrations
+
+```bash
+npx prisma migrate dev      # local, creates/applies migrations
+npx prisma migrate deploy   # production
+npx prisma generate
+npx prisma db seed
+```
+
+The `20261028000000_integrity_fixes` migration adds the unique index on `FeeInvoice(studentId, feeStructureId)`.
