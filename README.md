@@ -6,48 +6,64 @@ Single-campus academic platform (V1) for MIT-ADT: role-based dashboards for Admi
 
 | Layer | Tech |
 |---|---|
-| Framework | Next.js 14.2.7 (App Router, TypeScript) |
+| Framework | Next.js 14.2.7 (App Router, TypeScript strict) |
 | Auth | next-auth 4.24.7, Credentials provider, bcrypt, JWT |
-| DB / ORM | SQLite (`DATABASE_URL=file:./dev.db`) + Prisma 5.19.1 |
-| Backend | Server Actions (`src/lib/actions/`) |
-| Styling | Tailwind CSS + shadcn-style UI |
+| DB / ORM | PostgreSQL (Neon) + Prisma 5.19.1 |
+| Backend | Server Actions, feature-sliced under `src/features/` |
+| Styling | Tailwind CSS + shadcn-style primitives in `src/shared/ui` |
 | API routes | One: `/api/auth/[...nextauth]` |
 
-No online payments, email service, or cloud storage in V1.
+No online payments, email service, cloud storage, or realtime features in V1.
 
 ## What each role can do
 
-Login redirects by role: ADMIN → `/admin`, TEACHER → `/teacher`, STUDENT → `/student`.
+Login redirects by role: ADMIN -> `/admin`, TEACHER -> `/teacher`, STUDENT -> `/student`.
 
-**Admin** (`src/lib/actions/admin.ts`)
-- `createUser`, `toggleUserActive`
-- `enrollStudent` / `unenrollStudent` (`enroll/unenrollStudent` naming in UI)
-- `createClass`, `createSubject`, `assignTeacher`
-- `createTimetableEntry` / `deleteTimetableEntry`, `getTimetable`
-- `createFeeStructure` (auto-creates UNPAID invoices for enrolled students), `createFeeInvoice`, `recordFeePayment`
+**Admin** (`src/features/{users,classes,timetable,fees,overview}`)
+- Create users, activate/deactivate accounts
+- Enroll / unenroll students
+- Create classes, subjects, assign teachers
+- Create / delete timetable entries
+- Create fee structures (auto-creates invoices for enrolled students), single invoices, record payments
 
-**Teacher** (`src/lib/actions/teacher.ts`)
-- `bulkMarkAttendance` (date + class scoped), `getAttendanceHistory`, `getClassRoster`
-- `createAssignment`, `gradeSubmission` (upserts `Grade` with letter)
-- `createExam`, `addQuestion` / `updateQuestion` / `deleteQuestion`, `publishExam`, `getExamAttempts`
+**Teacher** (`src/features/{classes,timetable,attendance,assignments,exams,overview}`)
+- Bulk mark attendance and view history
+- View rosters for classes they teach
+- Create assignments, grade submissions (upserts a subject grade)
+- Create MCQ exams, add/update/delete questions, publish, view attempts
 
-**Student** (`src/lib/actions/student.ts`)
-- `submitAssignment` (resubmit allowed while ungraded), `submitExam` (MCQ auto-graded, single attempt, no retake), `payFee`
-- Reads: own attendance, grades, timetable, fees, assignments, published exams
+**Student** (`src/features/{attendance,assignments,timetable,fees,exams,overview}`)
+- Submit or resubmit assignments while ungraded
+- Take published MCQ exams (one attempt, auto-scored)
+- Pay fees manually (recorded, no gateway)
+- Read own attendance, grades, timetable, fees, assignments, exams
 
-Rules: exams are MCQ-only (options stored as JSON, `correctOption` index). Fees are manual cash-style records (`method` defaults CASH, `status` COMPLETED via `payFee` / `recordFeePayment`). No online gateway.
+## Security model
+
+Every Server Action authenticates with `requireUser()` and checks the role it needs. User ids accepted from the client are passed through `scopedUserId()`: a non-admin may only request their own id. Mutation ownership is checked against the database (subject teacher, assignment teacher, exam creator, invoice owner). Writes validate input with the feature Zod schemas, not only client-side forms.
+
+Additional guarantees:
+- Attendance is limited to the teacher's own subject and enrolled students.
+- Timetable entries verify class/subject/teacher consistency and reject class or teacher overlaps.
+- Exams reject edits after publishing, require question marks to equal `totalMarks` before publish, and score answers keyed by question id.
+- Fee invoices are unique per student and fee structure; pending totals include partial balances.
+- Dates are normalized to UTC calendar days in `src/lib/date.ts`.
+
+See `docs/security.md` for the full model and `docs/rbac-and-workflows.md` for per-role boundaries.
 
 ## Quickstart
 
 ```bash
 npm install
-cp .env.example .env.local   # Windows: copy .env.example .env.local
-npx prisma db push
-npx prisma db seed            # runs node prisma/seed.js per package.json
-npm run dev                   # http://localhost:3000
+cp .env.example .env   # Windows: copy .env.example .env
+npx prisma migrate dev
+npx prisma db seed
+npm run dev                  # http://localhost:3000
 ```
 
-## Demo accounts (password: `password123`)
+Prisma CLI reads `.env` but not `.env.local`. Keep `DATABASE_URL` and `DIRECT_URL` in `.env`, or export them in the shell before running Prisma commands. Next.js loads both files.
+
+Demo accounts are seeded by `prisma/seed.js`; the seeded demo password is defined there. Change it before any shared deployment.
 
 | Role | Email |
 |---|---|
@@ -55,10 +71,13 @@ npm run dev                   # http://localhost:3000
 | Teacher | sneha.kulkarni@mitadt.edu.in |
 | Student | aditya.shinde@mitadt.edu.in |
 
-## Environment (.env.example)
+## Environment
 
-```
-DATABASE_URL="file:./dev.db"
+Five variables (see `docs/environment.md`):
+
+```env
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="change-me-in-production"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
@@ -68,40 +87,64 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Start dev server |
-| `npm run build` | Build for production |
-| `npm start` | Start production server |
-| `npm run lint` | Run ESLint |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `vercel-build` | Generate client, apply migrations, build |
+| `npm start` | Start the production server |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest |
+| `npm run boundaries` | Enforce feature/shared import boundaries |
+| `npm run lint` | Next.js ESLint (`next/core-web-vitals`) |
 
-## Project tree (real)
+## Project layout
 
 ```
 src/
   app/
     page.tsx                          # landing
     (auth)/login/page.tsx
-    (dashboard)/admin/                # page, users, classes, subjects, timetable, fees
-    (dashboard)/teacher/              # page, classes, classes/[classId], timetable,
-                                      # attendance, attendance/mark, assignments, exams
-    (dashboard)/student/              # page, attendance, assignments, exams, exams/[id],
-                                      # grades, timetable, fees
+    (dashboard)/admin/                # dashboard, users, classes, subjects, timetable, fees
+    (dashboard)/teacher/              # dashboard, classes, timetable, attendance, assignments, exams
+    (dashboard)/student/              # dashboard, attendance, assignments, exams, grades, timetable, fees
     api/auth/[...nextauth]/route.ts   # only API route
-  lib/actions/                        # admin.ts, teacher.ts, student.ts
-  lib/                                # auth.ts, auth-options.ts, prisma.ts, utils.ts
-  middleware.ts                       # role-direct on /login
+  features/                           # actions.ts + schemas.ts per domain
+    users/ classes/ timetable/ attendance/ assignments/ exams/ fees/ overview/
+  lib/                                # auth, auth-options, date, fees, prisma, utils
+  shared/                             # ui primitives, layouts, motion, providers
+  middleware.ts                       # route-prefix role gate
 prisma/
   schema.prisma                       # 16 models
+  migrations/                         # Postgres migrations
   seed.js
+scripts/check-boundaries.mjs
+docs/
 public/mit-adt-crest.png
 ```
+
+`src/lib/actions/{admin,teacher,student}.ts` remain as compatibility shims that re-export feature actions. New code imports from `@/features/*/actions`.
 
 Models (16): User, Department, Class, Enrollment, Subject, Timetable, Attendance, Assignment, Submission, Exam, Question, ExamSubmission, Grade, FeeStructure, FeeInvoice, FeePayment.
 
 Design: MIT-ADT Light theme, white surfaces, brand purple `#5E2D91`, magenta `#C13584`, ember `#F26522`, crest at `public/mit-adt-crest.png`.
 
-## Roadmap (Planned, not shipped)
+## Docs
 
-- Online payments (gateway integration)
+- `docs/architecture.md` - runtime, modules, request flow
+- `docs/database.md` - schema and integrity rules
+- `docs/api.md` - Server Action reference
+- `docs/features.md` - implemented features and routes
+- `docs/rbac-and-workflows.md` - role matrix and workflows
+- `docs/security.md` - authorization, scoping, validation
+- `docs/environment.md` - environment variables
+- `docs/deployment.md` - Neon + Vercel
+- `docs/DESIGN.md` - visual system
+- `docs/project-report.md` - project summary
+
+## Roadmap (planned, not shipped)
+
+- Online payment gateway
 - Hostel / transport / library modules
 - Real-time chat and notices
 - CSV bulk import
+- Subjective exams with manual grading
+- Multi-campus support
