@@ -1,14 +1,14 @@
 import { Reveal } from "@/shared/motion";
 import MarkClient from "./client";
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { getTeacherSubjects } from "@/features/classes/actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function MarkPage() {
-  const session = await getSession();
-  const teacherId = session!.user.id;
+  const me = await requireUser(["TEACHER"]);
+  const teacherId = me.id;
   const subjects = await getTeacherSubjects(teacherId);
   const classIds = Array.from(new Set(subjects.map((s) => s.classId)));
   const classes = subjects
@@ -17,7 +17,7 @@ export default async function MarkPage() {
   const enrollments = await prisma.enrollment.findMany({
     where: { classId: { in: classIds } },
     include: { student: { select: { id: true, name: true } } },
-    take: 200,
+    take: 500,
   });
   const byClass: Record<string, { id: string; name: string }[]> = {};
   for (const c of classIds) byClass[c] = [];
