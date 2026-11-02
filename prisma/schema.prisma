@@ -197,7 +197,7 @@ model ExamSubmission {
   exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   studentId   String
   student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  answers     String   // JSON array string
+  answers     String   // JSON map of questionId -> selected option index
   score       Int?
   submittedAt DateTime @default(now())
 
@@ -247,6 +247,7 @@ model FeeInvoice {
 
   payments FeePayment[]
 
+  @@unique([studentId, feeStructureId])
   @@index([studentId, status])
 }
 
