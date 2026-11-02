@@ -2,7 +2,7 @@
 
 There are no REST endpoints. The only API route is next-auth:
 
-- `src/app/api/auth/[...nextauth]/route.ts` — GET/POST handler using `authOptions`.
+- `src/app/api/auth/[...nextauth]/route.ts` - GET/POST handler using `authOptions`.
 
 Auth (`src/lib/auth-options.ts`): next-auth 4.24.7, Credentials provider. `authorize()` looks up `prisma.user` by email, rejects when missing or `isActive` false, compares with `bcrypt.compare`, returns `{ id, email, name, role }`. JWT session strategy; `jwt` callback copies `id` and `role` onto the token; `session` callback copies them onto `session.user`. Sign-in page: `/login`.
 
@@ -13,80 +13,154 @@ session.user: { id: string; role: string } & DefaultSession["user"]
 token/JWT: { id: string; role: string }
 ```
 
-All data access is via Server Actions (`"use server"`, Prisma 5.19.1, `revalidatePath` after writes). 53 functions total. Callers pass the current user id explicitly (from `getServerSession(authOptions)`); there is no token-passing or fetch layer.
+All data access is via Server Actions (`"use server"`, Prisma 5.19.1, `revalidatePath` after writes). Implementations live in `src/features/*/actions.ts`; `src/lib/actions/{admin,teacher,student}.ts` are re-export shims.
+
+Authorization is enforced in actions, not by middleware alone:
+
+- `requireUser(allowed?)` validates the session, re-checks the user is active and the current role in the database, and throws `Unauthorized`/`Forbidden`.
+- `scopedUserId(me, requestedId?)` lets admins read any user id; non-admins may only read their own.
+- Mutations check database ownership (subject teacher, assignment teacher, exam creator, invoice owner).
 
 ---
 
-## Admin (`src/lib/actions/admin.ts`, 24)
+## Users (`src/features/users/actions.ts`)
 
 ```ts
-getAdminStats(): Promise<{ users: number; classes: number; subjects: number; pendingFees: number }>
-getUsers(): Promise<{ id; name; email; role; isActive }[]>            // orderBy name, take 100
-toggleUserActive(id: string): Promise<void>                           // flips isActive; revalidates /admin/users
-getClasses(): Promise<Class & { department; _count: { enrollments; subjects } }[]>
-createClass(name: string, section: string, departmentId: string): Promise<void>
-getSubjects(): Promise<Subject & { class; teacher: { name } | null }[]>
-getTimetable(): Promise<Timetable & { class; subject; teacher: { name } | null }[]> // take 100
-getFeeOverview(): Promise<{ pending: number; pendingCount: number; collected: number }>
-getDepartments(): Promise<Department[]>
-getStudentUsers(): Promise<{ id; name; email }[]>                     // role STUDENT, take 200
-getTeacherUsers(): Promise<{ id; name; email }[]>                     // role TEACHER, take 200
-getClassesWithStudents(): Promise<Class & { department; _count; enrollments: { student: { id; name; email } }[] }[]>
-getFeeStructures(): Promise<FeeStructure & { class: { name; section } }[]>
-getFeeInvoices(): Promise<FeeInvoice & { student: { name; email }; feeStructure: { name }; payments: { amount }[] }[]> // take 200
-createUser(name: string, email: string, password: string, role: string): Promise<void> // lowercases email, throws on duplicate, bcrypt-hashes
-enrollStudent(studentId: string, classId: string): Promise<void>      // no-op if Enrollment exists; revalidates /admin/classes, /student, /student/timetable
-unenrollStudent(studentId: string, classId: string): Promise<void>    // deleteMany
-createSubject(name: string, code: string, classId: string): Promise<void> // code uppercased, throws on duplicate
-assignTeacher(subjectId: string, teacherId: string): Promise<void>
+getUsers(): Promise<{ id; name; email; role; isActive }[]>            // ADMIN, orderBy name, take 500
+toggleUserActive(id: string): Promise<void>                           // ADMIN; blocks self and last admin deactivation
+getStudentUsers(): Promise<{ id; name; email }[]>                     // ADMIN, active STUDENT, take 500
+getTeacherUsers(): Promise<{ id; name; email }[]>                     // ADMIN, active TEACHER, take 200
+createUser(name: string, email: string, password: string, role: string): Promise<void>
+enrollStudent(studentId: string, classId: string): Promise<void>      // idempotent; verifies active STUDENT + class
+unenrollStudent(studentId: string, classId: string): Promise<void>
+```
+
+`createUser` validates with `createUserSchema`, trims/lowercases email, bcrypt-hashes the password, and maps duplicate email (`P2002`) to a readable error.
+
+---
+
+## Classes (`src/features/classes/actions.ts`)
+
+```ts
+getClasses(): Promise<Class & { department; _count: { enrollments; subjects } }[]> // ADMIN
+createClass(name: string, section: string, departmentId: string): Promise<void>    // ADMIN; department must exist
+getSubjects(): Promise<Subject & { class; teacher: { name } | null }[]>            // ADMIN
+createSubject(name: string, code: string, classId: string): Promise<void>          // ADMIN; code uppercased, unique
+assignTeacher(subjectId: string, teacherId: string): Promise<void>                 // ADMIN; active TEACHER only
+getDepartments(): Promise<Department[]>                                            // ADMIN
+getClassesWithStudents(): Promise<Class & { department; _count; enrollments: { student }[] }[]> // ADMIN
+getTeacherSubjects(teacherId: string): Promise<Subject & { class; _count }[]>      // TEACHER/ADMIN, scoped id
+getClassRoster(classId: string): Promise<{ class; students: { id; name; email; present; total; attendancePct; avgPct; gradesCount }[] }>
+```
+
+`getClassRoster` requires a teacher to have at least one subject in the class; admins bypass that check.
+
+---
+
+## Timetable (`src/features/timetable/actions.ts`)
+
+```ts
+getTimetable(): Promise<Timetable & { class; subject; teacher: { name } | null }[]> // ADMIN, take 200
 createTimetableEntry(dayOfWeek: string, startTime: string, endTime: string, classId: string, subjectId: string, teacherId: string, room?: string): Promise<void>
-deleteTimetableEntry(id: string): Promise<void>
-createFeeStructure(name: string, amount: number, classId: string, dueDate: string | Date): Promise<void> // also createMany UNPAID FeeInvoice for every enrolled student
-createFeeInvoice(studentId: string, feeStructureId: string, amount: number, dueDate: string | Date): Promise<void> // status UNPAID
-recordFeePayment(invoiceId: string, amount: number, method: string): Promise<void> // inserts FeePayment; flips invoice to PAID when sum >= amount
+deleteTimetableEntry(id: string): Promise<void>                                     // ADMIN
+getTeacherTimetable(teacherId: string): Promise<Timetable & { class; subject }[]>   // scoped
+getStudentTimetable(studentId: string): Promise<Timetable & { subject; teacher; class }[]> // scoped
 ```
+
+Writes normalize `H:MM`/`HH:MM`, verify the subject belongs to the class and is taught by the teacher, and reject overlapping class or teacher slots.
 
 ---
 
-## Teacher (`src/lib/actions/teacher.ts`, 19)
+## Attendance (`src/features/attendance/actions.ts`)
 
 ```ts
-getTeacherDashboard(teacherId: string): Promise<{ subjects: number; assignments: number; pendingSubs: number; todayAttendance: number }>
-getTeacherSubjects(teacherId: string): Promise<Subject & { class; _count: { assignments; exams } }[]>
-getTeacherTimetable(teacherId: string): Promise<Timetable & { class; subject }[]>
-getTodayAttendance(teacherId: string)                                 // markedById + date >= today 00:00, take 50
+bulkMarkAttendance(input: {
+  classId: string; subjectId: string; date: Date | string; markedById: string;
+  rows: { studentId: string; status: "PRESENT" | "ABSENT" | "LATE" }[];
+}): Promise<void>
 getAttendanceHistory(teacherId: string, classId?: string, from?: Date, to?: Date)
-bulkMarkAttendance(input: { classId: string; subjectId: string; date: Date; markedById: string; rows: { studentId: string; status: string }[] }): Promise<void> // per-row upsert on @@unique[studentId, subjectId, date]
-getTeacherAssignments(teacherId: string): Promise<Assignment & { subject; _count: { submissions } }[]>
-createAssignment(input: { title: string; description: string; subjectId: string; teacherId: string; deadline: Date; maxMarks: number }): Promise<void>
-getPendingSubmissions(teacherId: string)                              // marksObtained null, take 25
-gradeSubmission(id: string, marks: number, feedback: string, graderId: string): Promise<void> // clamps to [0, maxMarks]; upserts Grade with letter A>=90 / B>=75 / C>=60 / D>=40 / F; revalidates /teacher/assignments, /student/assignments, /student/grades, /student
-getTeacherExams(teacherId: string): Promise<Exam & { subject; questions; submissions: { student: { id; name } }[]; _count }[]>
-getExamAttempts(examId: string, teacherId: string)                    // guards exam.createdById
-getExamQuestions(examId: string): Promise<Question[]>
-createExam(input: { name: string; subjectId: string; totalMarks: number; duration: number; createdById: string }): Promise<string> // returns exam id
-addQuestion(input: { examId: string; questionText: string; options: string[]; correctOption: number; marks: number }): Promise<void> // options stored via JSON.stringify
-updateQuestion(id: string, data: { questionText?: string; options?: string[]; correctOption?: number; marks?: number }): Promise<void>
-deleteQuestion(id: string): Promise<void>
-publishExam(id: string): Promise<void>                                // sets isPublished true
-getClassRoster(classId: string): Promise<{ class: Class | null; students: { id; name; email; present; total; attendancePct; avgPct; gradesCount }[] }>
+getStudentAttendance(studentId: string): Promise<{ records; perSubject: { code; name; total; present; pct }[] }>
 ```
+
+`bulkMarkAttendance` is TEACHER/ADMIN, forces `markedById` to the session user, verifies subject/class/teacher and enrollment for every row, normalizes the date to UTC midnight, and upserts on `[studentId, subjectId, date]`. `getStudentAttendance` returns the last 25 records plus per-subject totals; `LATE` counts as present.
 
 ---
 
-## Student (`src/lib/actions/student.ts`, 10)
+## Assignments (`src/features/assignments/actions.ts`)
 
 ```ts
-getStudentDashboard(studentId: string): Promise<{ subjects: number; attendancePct: number; avgPct: number; pendingFees: number; pendingCount: number }>
-getStudentAttendance(studentId: string): Promise<{ records: (Attendance & { subject: { name; code } })[]; perSubject: { code; name; total; present; pct }[] }> // last 60, non-ABSENT counts as present
-getStudentAssignments(studentId: string)                              // assignments in enrolled classes + own submission { content; marksObtained; feedback }
-submitAssignment(assignmentId: string, studentId: string, content: string): Promise<void> // upsert on @@unique[assignmentId, studentId]
-getStudentGrades(studentId: string): Promise<{ grades: (Grade & { subject: { name; code } })[]; examResults: (ExamSubmission & { exam: { name; totalMarks; subject: { name; code } } })[] }> // only isPublished exams
-getStudentTimetable(studentId: string): Promise<Timetable & { subject; teacher: { name } | null; class }[]>
-getStudentFees(studentId: string): Promise<FeeInvoice & { feeStructure; payments }[]>
-payFee(invoiceId: string, amount: number, method: string): Promise<void> // validates amount, rejects paid/excess; creates FeePayment (default CASH/COMPLETED at DB level); PAID when fully covered else PARTIAL
-getStudentExams(studentId: string)                                    // isPublished exams in enrolled classes + own submissions
-submitExam(examId: string, studentId: string, answers: number[]): Promise<number> // MCQ auto-score vs correctOption, upsert on @@unique[examId, studentId], returns score
+getTeacherAssignments(teacherId: string)
+createAssignment(input: { title; description?; subjectId; teacherId; deadline: Date | string; maxMarks }): Promise<void>
+getPendingSubmissions(teacherId: string)                             // ungraded, take 25
+gradeSubmission(id: string, marks: number, feedback: string, graderId: string): Promise<void>
+getStudentAssignments(studentId: string)
+submitAssignment(assignmentId: string, studentId: string, content: string): Promise<void>
+getStudentGrades(studentId: string): Promise<{ grades; examResults }>
 ```
 
-Errors: actions throw `Error` (duplicate email/code, submission/exam/invoice not found, invalid/over payment). Auth failures surface as next-auth `authorize` errors ("Invalid credentials" / "User not found or inactive" / "Invalid password"). Role violations are enforced in `src/middleware.ts` (403), not in the actions.
+`createAssignment` forces the teacher id unless admin and verifies the subject belongs to that teacher. `gradeSubmission` verifies assignment ownership, clamps marks to `[0, maxMarks]`, updates the submission, and upserts `Grade` with letter `A>=90 / B>=75 / C>=60 / D>=40 / F`. Students can resubmit while ungraded.
+
+---
+
+## Exams (`src/features/exams/actions.ts`)
+
+```ts
+getTeacherExams(teacherId: string)                                  // scoped; questions ordered by id
+getExamAttempts(examId: string, teacherId: string)                  // owner check
+createExam(input: { name; subjectId; totalMarks; duration; createdById }): Promise<string>
+addQuestion(input: { examId; questionText; options: string[]; correctOption; marks }): Promise<void>
+updateQuestion(id: string, data: { questionText?; options?; correctOption?; marks? }): Promise<void>
+deleteQuestion(id: string): Promise<void>
+publishExam(id: string): Promise<void>
+getStudentExams(studentId: string)                                  // published + enrolled, scoped
+submitExam(examId: string, studentId: string, answers: Record<string, number>): Promise<number>
+```
+
+Rules:
+
+- Only the exam creator (or admin) may mutate questions or publish.
+- Questions cannot be edited after publishing.
+- Adding/updating questions rejects a sum of marks above `totalMarks`; publishing requires at least one question and an exact sum.
+- `submitExam` requires a published exam, enrollment, and no prior attempt. Answers are keyed by question id, every question must be answered with a valid option, and scoring is server-side. The score is capped at `totalMarks`.
+
+---
+
+## Fees (`src/features/fees/actions.ts`)
+
+```ts
+getFeeOverview(): Promise<{ pending; pendingCount; collected }>      // ADMIN; includes PARTIAL balances
+getFeeStructures(): Promise<FeeStructure & { class }[]>              // ADMIN
+getFeeInvoices(): Promise<FeeInvoice & { student; feeStructure; payments }[]> // ADMIN, take 500
+createFeeStructure(name: string, amount: number, classId: string, dueDate: Date | string): Promise<void>
+createFeeInvoice(studentId: string, feeStructureId: string, amount: number, dueDate: Date | string): Promise<void>
+recordFeePayment(invoiceId: string, amount: number, method: string): Promise<void>
+getStudentFees(studentId: string): Promise<FeeInvoice & { feeStructure; payments }[]> // scoped
+payFee(invoiceId: string, amount: number, method: string): Promise<void>
+```
+
+Fee behavior:
+
+- Creating a structure creates an UNPAID invoice for every enrolled student.
+- Invoices are unique per `[studentId, feeStructureId]` at the database level; the action pre-checks and also catches `P2002`.
+- Payments are recorded manually; methods are `CASH`, `UPI`, `CARD`, `NETBANKING`.
+- Overpayment and payment on a `PAID` invoice are rejected inside a Serializable transaction.
+- Invoice status becomes `PAID` when payments cover the amount, otherwise `PARTIAL`.
+- Pending totals subtract recorded payments for both `UNPAID` and `PARTIAL` invoices.
+
+---
+
+## Overview (`src/features/overview/actions.ts`)
+
+```ts
+getAdminStats(): Promise<{ users; classes; subjects; pendingFees }>       // ADMIN
+getTeacherDashboard(teacherId: string): Promise<{ subjects; assignments; pendingSubs; todayAttendance }> // scoped
+getStudentDashboard(studentId: string): Promise<{ subjects; attendancePct; avgPct; pendingFees; pendingCount }> // scoped
+```
+
+Teacher "today" uses UTC midnight via `todayStart()`. Student attendance treats every non-`ABSENT` mark as present.
+
+---
+
+## Errors
+
+Actions throw `Error` with readable messages (duplicate email/code, not found, forbidden, invalid or over payment, already submitted). Auth failures surface through next-auth (`Invalid credentials` / inactive user). The middleware returns `403` for wrong-role route access; actions return `Forbidden` for ownership/scoping violations.
