@@ -407,9 +407,11 @@ export function ExamsClient({
                     Publish
                   </Button>
                 ) : null}
-                <Button size="sm" variant="outline" onClick={() => setOpenId(openId === x.id ? "" : x.id)}>
-                  {openId === x.id ? "Close" : "Add Q"}
-                </Button>
+                {!x.isPublished ? (
+                  <Button size="sm" variant="outline" onClick={() => setOpenId(openId === x.id ? "" : x.id)}>
+                    {openId === x.id ? "Close" : "Add Q"}
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="outline"
@@ -486,33 +488,37 @@ export function ExamsClient({
                             <span className="font-medium text-ink">{idx + 1}. {qq.questionText}</span>
                             <span className="text-sub"> · {qq.marks} marks · answer {qq.correctOption}</span>
                           </span>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={editMarks[qq.id] ?? String(qq.marks)}
-                            onChange={(e) => setEditMarks((m) => ({ ...m, [qq.id]: e.target.value }))}
-                            className="w-20"
-                          />
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={async () => {
-                              await updateQuestion(qq.id, { marks: Math.max(0, Number(editMarks[qq.id] ?? qq.marks) || 0) });
-                              router.refresh();
-                            }}
-                          >
-                            Update
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={async () => {
-                              await deleteQuestion(qq.id);
-                              router.refresh();
-                            }}
-                          >
-                            Delete
-                          </Button>
+                          {!x.isPublished ? (
+                            <>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={editMarks[qq.id] ?? String(qq.marks)}
+                                onChange={(e) => setEditMarks((m) => ({ ...m, [qq.id]: e.target.value }))}
+                                className="w-20"
+                              />
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={async () => {
+                                  await updateQuestion(qq.id, { marks: Math.max(1, Number(editMarks[qq.id] ?? qq.marks) || 1) });
+                                  router.refresh();
+                                }}
+                              >
+                                Update
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={async () => {
+                                  await deleteQuestion(qq.id);
+                                  router.refresh();
+                                }}
+                              >
+                                Delete
+                              </Button>
+                            </>
+                          ) : null}
                         </li>
                       ))}
                     </ul>
