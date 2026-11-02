@@ -34,6 +34,11 @@ export default async function AdminTimetable() {
     getSubjects(),
     getTeacherUsers(),
   ]);
+  const orderedRows = [...rows].sort(
+    (a, b) =>
+      DAYS.indexOf(a.dayOfWeek) - DAYS.indexOf(b.dayOfWeek) ||
+      a.startTime.localeCompare(b.startTime)
+  );
   return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -155,7 +160,7 @@ export default async function AdminTimetable() {
                   </Tr>
                 </THead>
                 <TBody>
-                  {rows.map((r) => (
+                  {orderedRows.map((r) => (
                     <Tr key={r.id}>
                       <Td>
                         <Badge variant="brand">{r.dayOfWeek}</Badge>
